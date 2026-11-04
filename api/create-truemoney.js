@@ -1,0 +1,69 @@
+import crypto from 'node:crypto';
+import { MIN_BAHT, MAX_BAHT, chipsFor } from './_rates.js';
+
+// สร้างลิงก์รับเงินทรูมันนี่ (TrueMoney > บริการร้านค้า > สร้างลิงก์รับเงิน)
+// ตั้งค่าใน Vercel > Settings > Environment Variables:
+//   TMN_LINK_TOKEN       Token ของบริการ "สร้างลิงก์รับเงิน"
+//   TMN_RECEIVER_MOBILE  เบอร์ทรูมันนี่ร้านที่รับเงิน 10 หลัก
+// ข้อความในลิงก์ "BOSS <ไอดีเกม> #<รหัส>" บอทอ่านจากแจ้งรับเงินแล้วโอนเหรียญให้ไอดีนี้
+const API = 'https://apis.truemoneyservices.com/utils/v1/transfer-link-generator';
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // ไม่มี 0/O/1/I กันสับสน
+const LINK_MINUTES = 30;
+
+function newCode() {
+  const bytes = crypto.randomBytes(6);
+  return Array.from(bytes, (b) => CODE_CHARS[b % CODE_CHARS.length]).join('');
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).end('Method Not Allowed');
+  }
+
+  const token = process.env.TMN_LINK_TOKEN;
+  const mobile = String(process.env.TMN_RECEIVER_MOBILE || '').trim();
+  if (!token || !/^\d{10}$/.test(mobile)) {
+    return res.status(503).json({ error: 'ยังไม่เปิดใช้การชำระผ่าน TrueMoney กรุณาใช้ PromptPay' });
+  }
+
+  const gameId = String(req.body?.gameId ?? '').trim();
+  const amount = Number(req.body?.amount);
+  if (!/^\d{4,12}$/.test(gameId)) {
+    return res.status(400).json({ error: 'ไอดีเกมต้องเป็นตัวเลขเท่านั้น' });
+  }
+  if (!Number.isInteger(amount) || amount < MIN_BAHT || amount > MAX_BAHT) {
+    return res.status(400).json({ error: `กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${MIN_BAHT}–${MAX_BAHT.toLocaleString()} บาท` });
+  }
+
+  const chips = chipsFor(amount);
+  const code = newCode();
+
+  try {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mobile_number: mobile, amount: amount.toFixed(2), message: `BOSS ${gameId} #${code}` }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.status !== 'ok' || !d.data?.url) {
+      console.error('TrueMoney link error:', r.status, d);
+      const error = r.status === 429
+        ? 'มีผู้ใช้งานพร้อมกันจำนวนมาก กรุณาลองใหม่ในอีก 30 วินาที'
+        : 'ไม่สามารถสร้างลิงก์ TrueMoney ได้ กรุณาลองใหม่ หรือใช้ PromptPay';
+      return res.status(502).json({ error });
+    }
+    return res.status(200).json({
+      method: 'truemoney',
+      id: code,
+      url: d.data.url,
+      amount,
+      chips,
+      gameId,
+      expiresAt: Math.floor(Date.now() / 1000) + LINK_MINUTES * 60,
+    });
+  } catch (err) {
+    console.error('TrueMoney link error:', err);
+    return res.status(500).json({ error: 'ไม่สามารถเชื่อมต่อ TrueMoney ได้ กรุณาลองใหม่' });
+  }
+}
