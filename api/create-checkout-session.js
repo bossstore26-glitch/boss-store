@@ -1,9 +1,7 @@
 import Stripe from 'stripe';
+import { MIN_BAHT, MAX_BAHT, chipsFor } from './_rates.js';
 
-// อัตราแลกเปลี่ยน และขั้นต่ำ/สูงสุดต่อออเดอร์ (คำนวณที่ server เท่านั้น ห้ามเชื่อค่าจากหน้าเว็บ)
-const CHIPS_PER_BAHT = 8000;
-const MIN_BAHT = 19;        // เกมโอนได้ขั้นต่ำ 150,000 เหรียญ → 19 บาท = 152,000 เหรียญ
-const MAX_BAHT = 50000;     // กันกรอกผิดหรือยอดใหญ่ผิดปกติ
+// (แบบเก่า หน้าเว็บไม่ได้ใช้แล้ว เก็บไว้สำรอง) เรทราคาอยู่ใน api/_rates.js
 const SITE_URL = process.env.SITE_URL || 'https://boss-store-nine.vercel.app';
 
 export default async function handler(req, res) {
@@ -24,7 +22,7 @@ export default async function handler(req, res) {
     }
 
     // ไม่ใช้ chips จาก req.body เด็ดขาด
-    const chips = amount * CHIPS_PER_BAHT;
+    const chips = chipsFor(amount);
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const session = await stripe.checkout.sessions.create({

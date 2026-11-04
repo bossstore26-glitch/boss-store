@@ -1,10 +1,8 @@
 import Stripe from 'stripe';
+import { MIN_BAHT, MAX_BAHT, chipsFor } from './_rates.js';
 
 // สร้าง QR PromptPay ให้แสดงบนหน้าเว็บเราเอง (ไม่ต้องเด้งไปหน้า Stripe)
-// อัตราแลกเปลี่ยน และขั้นต่ำ/สูงสุดต่อออเดอร์ (คำนวณที่ server เท่านั้น ห้ามเชื่อค่าจากหน้าเว็บ)
-const CHIPS_PER_BAHT = 8000;
-const MIN_BAHT = 19;        // เกมโอนได้ขั้นต่ำ 150,000 เหรียญ → 19 บาท = 152,000 เหรียญ
-const MAX_BAHT = 50000;     // กันกรอกผิดหรือยอดใหญ่ผิดปกติ
+// เรทราคาอยู่ใน api/_rates.js (คำนวณที่ server เท่านั้น ห้ามเชื่อค่าจากหน้าเว็บ)
 // PromptPay บังคับต้องมีอีเมล ลูกค้าไม่ต้องกรอก ใช้อีเมลร้านแทน
 const BILLING_EMAIL = process.env.PROMPTPAY_BILLING_EMAIL || 'bossstore26@gmail.com';
 
@@ -26,7 +24,7 @@ export default async function handler(req, res) {
     }
 
     // ไม่ใช้ chips จาก req.body เด็ดขาด
-    const chips = amount * CHIPS_PER_BAHT;
+    const chips = chipsFor(amount);
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const intent = await stripe.paymentIntents.create({

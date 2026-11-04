@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ShoppingBag, CreditCard, ShieldCheck, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { ShoppingBag, CreditCard, ShieldCheck, ArrowRight, CheckCircle2, Loader2, ChevronDown } from 'lucide-react';
 import QRCode from 'qrcode';
+// ตารางเรทเดียวกับ server (server เป็นตัวตัดสินจริง หน้าเว็บใช้แสดงผล)
+import { PACKAGES, MIN_BAHT, MAX_BAHT, chipsFor, rateNote } from '../api/_rates.js';
 
-// ต้องตรงกับ api/create-promptpay.js (server เป็นตัวตัดสินจริง ค่านี้ใช้แสดงผลเท่านั้น)
-const CHIPS_PER_BAHT = 8000;
-const MIN_BAHT = 19;
-const MAX_BAHT = 50000;
 const POLL_MS = 3000;
 const STORAGE_KEY = 'bossstore_pending_qr';
 
@@ -189,9 +187,10 @@ export default function App() {
   const [customAmount, setCustomAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(loadPending);
+  const [showPackages, setShowPackages] = useState(false);
 
   const baht = Number(customAmount);
-  const chipsAmount = Number.isInteger(baht) && baht > 0 ? baht * CHIPS_PER_BAHT : 0;
+  const chipsAmount = chipsFor(baht);
 
   // สร้าง QR PromptPay แล้วแสดงบนหน้านี้เลย
   const handleCheckout = async (e) => {
@@ -296,9 +295,43 @@ export default function App() {
             <p className="text-xs text-gray-400 mt-2">
               💎 จำนวนเหรียญที่จะได้รับ: <span className="text-pink-400 font-bold">{chipsAmount.toLocaleString()} เหรียญ</span>
               <span className="block mt-1 text-gray-500">
-                1 บาท = {CHIPS_PER_BAHT.toLocaleString()} เหรียญ · ขั้นต่ำ {MIN_BAHT} บาท
+                ขั้นต่ำ {MIN_BAHT} บาท
+                {chipsAmount ? ` · ${rateNote(baht)}` : ''}
               </span>
             </p>
+
+            {/* เมนูเปิดดูแพ็กเกจ */}
+            <button
+              type="button"
+              onClick={() => setShowPackages((v) => !v)}
+              className="mt-3 w-full flex items-center justify-between bg-[#1a243f] border border-gray-700 hover:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-gray-200 transition"
+              aria-expanded={showPackages}
+            >
+              <span>📋 ดูแพ็กเกจราคา ({PACKAGES.length} แพ็กเกจ)</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showPackages ? 'rotate-180' : ''}`} />
+            </button>
+            {showPackages && (
+              <div className="mt-2 grid grid-cols-1 min-[340px]:grid-cols-2 gap-2">
+                {PACKAGES.map((p) => {
+                  const selected = p.baht === baht;
+                  return (
+                    <button
+                      key={p.baht}
+                      type="button"
+                      onClick={() => { setCustomAmount(String(p.baht)); setShowPackages(false); }}
+                      className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm border transition ${
+                        selected
+                          ? 'bg-purple-600/30 border-purple-400'
+                          : 'bg-[#1a243f] border-gray-700 hover:border-purple-500'
+                      }`}
+                    >
+                      <span className="font-semibold text-pink-300">{p.chips.toLocaleString()}</span>
+                      <span className="font-bold text-yellow-400">{p.baht}฿</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* ปุ่มกดชำระเงิน */}
