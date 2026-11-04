@@ -1,31 +1,31 @@
 import React, { useState } from 'react';
 import { ShoppingBag, CreditCard, ShieldCheck, ArrowRight } from 'lucide-react';
 
+// ต้องตรงกับ api/create-checkout-session.js (server เป็นตัวตัดสินจริง ค่านี้ใช้แสดงผลเท่านั้น)
+const CHIPS_PER_BAHT = 8000;
+const MIN_BAHT = 19;
+const MAX_BAHT = 50000;
+
 export default function App() {
   const [gameId, setGameId] = useState('');
   const [customAmount, setCustomAmount] = useState('');
-  const [chipsAmount, setChipsAmount] = useState(160000); // ตัวอย่างคำนวณชิปตามยอดเงิน
   const [loading, setLoading] = useState(false);
+  const paymentStatus = new URLSearchParams(window.location.search).get('payment');
 
-  // ฟังก์ชันคำนวณชิปคร่าวๆ ตามยอดเงิน (ปรับเปลี่ยนได้ตามต้องการ)
-  const handleAmountChange = (e) => {
-    const value = e.target.value;
-    setCustomAmount(value);
-    // ตัวอย่าง: 1 บาท = 8,000 ชิป
-    setChipsAmount(value ? Number(value) * 8000 : 0);
-  };
+  const baht = Number(customAmount);
+  const chipsAmount = Number.isInteger(baht) && baht > 0 ? baht * CHIPS_PER_BAHT : 0;
 
   // ฟังก์ชันกดส่งข้อมูลเพื่อสร้าง Stripe Checkout (PromptPay)
   const handleCheckout = async (e) => {
     e.preventDefault();
 
-    if (!gameId) {
-      alert('กรุณากรอกไอดีเกมผู้รับชิป');
+    if (!/^\d{4,12}$/.test(gameId)) {
+      alert('กรุณากรอกไอดีเกมเป็นตัวเลขให้ถูกต้อง');
       return;
     }
 
-    if (!customAmount || Number(customAmount) <= 0) {
-      alert('กรุณาระบุจำนวนเงินบาทให้ถูกต้อง');
+    if (!Number.isInteger(baht) || baht < MIN_BAHT || baht > MAX_BAHT) {
+      alert(`กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${MIN_BAHT}–${MAX_BAHT.toLocaleString()} บาท`);
       return;
     }
 
@@ -35,11 +35,7 @@ export default function App() {
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gameId: gameId,
-          chips: chipsAmount,
-          amount: Number(customAmount)
-        })
+        body: JSON.stringify({ gameId, amount: baht })
       });
 
       const data = await response.json();
@@ -71,6 +67,17 @@ export default function App() {
           </span>
         </div>
 
+        {paymentStatus === 'success' && (
+          <div className="mb-5 bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-sm rounded-xl px-4 py-3">
+            ✅ ชำระเงินสำเร็จ ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)
+          </div>
+        )}
+        {paymentStatus === 'cancel' && (
+          <div className="mb-5 bg-gray-600/20 border border-gray-500/40 text-gray-300 text-sm rounded-xl px-4 py-3">
+            ยกเลิกการชำระเงินแล้ว ยังไม่มีการเรียกเก็บเงิน
+          </div>
+        )}
+
         <form onSubmit={handleCheckout} className="space-y-5">
           {/* ช่องกรอกไอดีเกม */}
           <div>
@@ -79,9 +86,11 @@ export default function App() {
             </label>
             <input
               type="text"
+              inputMode="numeric"
+              maxLength={12}
               value={gameId}
-              onChange={(e) => setGameId(e.target.value)}
-              placeholder="เช่น Player_123"
+              onChange={(e) => setGameId(e.target.value.replace(/\D/g, ''))}
+              placeholder="เช่น 8129121"
               className="w-full bg-[#1a243f] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition"
               required
             />
@@ -96,16 +105,21 @@ export default function App() {
               <input
                 type="number"
                 value={customAmount}
-                onChange={handleAmountChange}
-                placeholder="0.00"
+                onChange={(e) => setCustomAmount(e.target.value)}
+                placeholder={`ขั้นต่ำ ${MIN_BAHT}`}
                 className="w-full bg-[#1a243f] border border-gray-700 rounded-xl pl-4 pr-12 py-3 text-white text-lg font-semibold focus:outline-none focus:border-purple-500 transition"
                 required
-                min="1"
+                min={MIN_BAHT}
+                max={MAX_BAHT}
+                step="1"
               />
               <span className="absolute right-4 top-3.5 text-gray-400 font-bold">฿</span>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              💎 จำนวนชิปที่จะได้รับ: <span className="text-pink-400 font-bold">{chipsAmount.toLocaleString()} ชิป</span>
+              💎 จำนวนเหรียญที่จะได้รับ: <span className="text-pink-400 font-bold">{chipsAmount.toLocaleString()} เหรียญ</span>
+              <span className="block mt-1 text-gray-500">
+                1 บาท = {CHIPS_PER_BAHT.toLocaleString()} เหรียญ · ขั้นต่ำ {MIN_BAHT} บาท
+              </span>
             </p>
           </div>
 
