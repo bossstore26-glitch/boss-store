@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ShoppingBag, CreditCard, ShieldCheck, ArrowRight, CheckCircle2, Loader2, ChevronDown } from 'lucide-react';
 import QRCode from 'qrcode';
 // ตารางเรทเดียวกับ server (server เป็นตัวตัดสินจริง หน้าเว็บใช้แสดงผล)
-import { PACKAGES, MIN_BAHT, MAX_BAHT, chipsFor, rateNote } from '../api/_rates.js';
+import { GAMES, GAME_KEYS, MAX_BAHT, chipsFor, rateNote, formatChips, minBaht, gameOf } from '../api/_rates.js';
 
 const POLL_MS = 3000;
 const STORAGE_KEY = 'bossstore_pending_qr';
@@ -126,14 +126,15 @@ function PaymentCard({ pending, onDone, onCancel }) {
 
       <div className="px-6 py-6 flex flex-col items-center">
         <div className="w-full bg-[#22273a] rounded-xl py-3 text-center">
-          เติมให้ไอดี <span className="text-yellow-400 font-bold">{pending.gameId}</span>
+          เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
+          <span className="text-yellow-400 font-bold">{pending.gameId}</span>
         </div>
 
         <p className="mt-5 text-sm text-gray-300">ยอดชำระ</p>
         <p className="text-3xl font-bold mt-1">
           ฿{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </p>
-        <p className="text-xs text-pink-400 mt-1">{pending.chips.toLocaleString()} เหรียญ</p>
+        <p className="text-xs text-pink-400 mt-1">{formatChips(pending.chips, pending.game)} เหรียญ</p>
 
         <div className={`mt-4 bg-white rounded-2xl p-3 ${dead ? 'opacity-30' : ''}`}>
           <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
@@ -224,14 +225,15 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
 
       <div className="px-6 py-6 flex flex-col items-center">
         <div className="w-full bg-[#22273a] rounded-xl py-3 text-center">
-          เติมให้ไอดี <span className="text-yellow-400 font-bold">{pending.gameId}</span>
+          เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
+          <span className="text-yellow-400 font-bold">{pending.gameId}</span>
         </div>
 
         <p className="mt-5 text-sm text-gray-300">ยอดโอน</p>
         <p className="text-3xl font-bold mt-1">
           ฿{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </p>
-        <p className="text-xs text-pink-400 mt-1">{pending.chips.toLocaleString()} เหรียญ</p>
+        <p className="text-xs text-pink-400 mt-1">{formatChips(pending.chips, pending.game)} เหรียญ</p>
 
         {paid ? (
           <div className="mt-5 w-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
@@ -253,7 +255,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
               <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
             </div>
             <div className="mt-4 w-full bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs rounded-xl px-4 py-3 leading-relaxed">
-              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b> (เติมเกมรอยัล เพจBOSS STORE ({pending.gameId}) #{pending.id})
+              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b> (เติมเกม{gameOf(pending.game).tmnWord} เพจBOSS STORE ({pending.gameId}) #{pending.id})
               ในหน้าโอน ไม่งั้นระบบส่งเหรียญอัตโนมัติไม่ได้
             </div>
             <p className="mt-5 text-sm text-gray-200 flex items-center gap-2">
@@ -300,9 +302,13 @@ export default function App() {
   const [pending, setPending] = useState(loadPending);
   const [showPackages, setShowPackages] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [game, setGame] = useState('royal');
 
+  const gameInfo = GAMES[game];
+  const MIN_BAHT = minBaht(game);
+  const PACKAGES = gameInfo.packages;
   const baht = Number(customAmount);
-  const chipsAmount = chipsFor(baht);
+  const chipsAmount = chipsFor(baht, game);
 
   // กดชำระ → ตรวจข้อมูล → ป๊อปอัปให้ลูกค้ายืนยันไอดีก่อน
   const handleCheckout = (e) => {
@@ -330,7 +336,7 @@ export default function App() {
       const response = await fetch(method === 'truemoney' ? '/api/create-truemoney' : '/api/create-promptpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId, amount: baht })
+        body: JSON.stringify({ gameId, amount: baht, game })
       });
 
       const data = await response.json();
@@ -394,8 +400,9 @@ export default function App() {
               <p className="text-3xl font-bold tracking-wider text-yellow-300 mt-1">{gameId}</p>
             </div>
             <p className="mt-3 text-sm text-gray-300">
+              เกม <span className="font-bold text-yellow-300">{gameInfo.name}</span> ·{' '}
               ยอด <span className="font-bold text-white">{baht.toLocaleString()} บาท</span> ·{' '}
-              <span className="text-pink-400 font-bold">{chipsAmount.toLocaleString()} เหรียญ</span> ·{' '}
+              <span className="text-pink-400 font-bold">{formatChips(chipsAmount, game)} เหรียญ</span> ·{' '}
               {method === 'truemoney' ? 'TrueMoney' : 'PromptPay'}
             </p>
 
@@ -432,10 +439,35 @@ export default function App() {
         </div>
 
         <form onSubmit={handleCheckout} className="space-y-5">
+          {/* เลือกเกม */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">1. เลือกเกม</label>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="เลือกเกม">
+              {GAME_KEYS.map((key) => {
+                const on = game === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => { setGame(key); setShowPackages(false); }}
+                    className={`rounded-xl px-3 py-2.5 border transition text-center ${
+                      on ? 'bg-yellow-500/15 border-yellow-400' : 'bg-[#1a243f] border-gray-700 hover:border-gray-500'
+                    }`}
+                  >
+                    <span className={`block font-bold ${on ? 'text-yellow-300' : 'text-gray-200'}`}>{GAMES[key].name}</span>
+                    <span className="block text-xs text-gray-400 mt-0.5">ขั้นต่ำ {minBaht(key)} บาท</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* ช่องกรอกไอดีเกม */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              1. ไอดีผู้เล่น (Game ID)
+              2. ไอดีผู้เล่น {gameInfo.name} (Game ID)
             </label>
             <input
               type="text"
@@ -452,7 +484,7 @@ export default function App() {
           {/* ช่องกรอกจำนวนเงินเอง */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              2. ระบุจำนวนเงิน (บาท)
+              3. ระบุจำนวนเงิน (บาท)
             </label>
             <div className="relative">
               <input
@@ -469,10 +501,10 @@ export default function App() {
               <span className="absolute right-4 top-3.5 text-gray-400 font-bold">฿</span>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              💎 จำนวนเหรียญที่จะได้รับ: <span className="text-pink-400 font-bold">{chipsAmount.toLocaleString()} เหรียญ</span>
+              💎 จำนวนเหรียญที่จะได้รับ: <span className="text-pink-400 font-bold">{formatChips(chipsAmount, game)} เหรียญ</span>
               <span className="block mt-1 text-gray-500">
                 ขั้นต่ำ {MIN_BAHT} บาท
-                {chipsAmount ? ` · ${rateNote(baht)}` : ''}
+                {chipsAmount ? ` · ${rateNote(baht, game)}` : ''}
               </span>
             </p>
 
@@ -483,7 +515,7 @@ export default function App() {
               className="mt-3 w-full flex items-center justify-between bg-[#1a243f] border border-gray-700 hover:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-gray-200 transition"
               aria-expanded={showPackages}
             >
-              <span>📋 ดูแพ็กเกจราคา ({PACKAGES.length} แพ็กเกจ)</span>
+              <span>📋 ดูแพ็กเกจราคา {gameInfo.short} ({PACKAGES.length} แพ็กเกจ)</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${showPackages ? 'rotate-180' : ''}`} />
             </button>
             {showPackages && (
@@ -501,7 +533,7 @@ export default function App() {
                           : 'bg-[#1a243f] border-gray-700 hover:border-purple-500'
                       }`}
                     >
-                      <span className="font-semibold text-pink-300">{p.chips.toLocaleString()}</span>
+                      <span className="font-semibold text-pink-300">{formatChips(p.chips, game)}</span>
                       <span className="font-bold text-yellow-400">{p.baht}฿</span>
                     </button>
                   );
@@ -512,7 +544,7 @@ export default function App() {
 
           {/* เลือกช่องทางชำระเงิน */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">3. ช่องทางชำระเงิน</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">4. ช่องทางชำระเงิน</label>
             <div className="grid grid-cols-2 gap-2" role="radiogroup">
               {METHODS.map((m) => {
                 const on = method === m.key;
