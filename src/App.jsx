@@ -255,7 +255,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
               <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
             </div>
             <div className="mt-4 w-full bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs rounded-xl px-4 py-3 leading-relaxed">
-              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b> (เติมเกม{gameOf(pending.game).tmnWord} เพจBOSS STORE ({pending.gameId}) #{pending.id})
+              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b> (เติมเกม{gameOf(pending.game).tmnWord} เพจBOSS STORE ID {pending.gameId} #{pending.id})
               ในหน้าโอน ไม่งั้นระบบส่งเหรียญอัตโนมัติไม่ได้
             </div>
             <p className="mt-5 text-sm text-gray-200 flex items-center gap-2">
@@ -307,6 +307,8 @@ export default function App() {
   const [openGames, setOpenGames] = useState(() => Object.fromEntries(GAME_KEYS.map((k) => [k, true])));
   // ช่องทางจ่ายที่เปิดอยู่ (ร้านปิดปรับปรุงได้จากแผงควบคุม)
   const [openMethods, setOpenMethods] = useState(() => Object.fromEntries(METHODS.map((m) => [m.key, true])));
+  // ติดต่อคอมร้านไม่ได้ (ไฟดับ/เน็ตหลุด) → ปิดรับเงินทั้งหมด กันลูกค้าจ่ายแล้วไม่ได้เหรียญ
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     let stopped = false;
@@ -316,10 +318,11 @@ export default function App() {
         if (stopped) return;
         if (d.games) setOpenGames((prev) => ({ ...prev, ...d.games }));
         if (d.methods) setOpenMethods((prev) => ({ ...prev, ...d.methods }));
+        setOffline(!!d.offline);
       } catch {}
     };
     load();
-    const timer = setInterval(load, 60000);
+    const timer = setInterval(load, 30000);
     return () => { stopped = true; clearInterval(timer); };
   }, []);
 
@@ -390,6 +393,7 @@ export default function App() {
         savePending(data);
         setPending(data);
       } else {
+        if (data.offline) setOffline(true);
         if (data.closed) setOpenGames((prev) => ({ ...prev, [data.closed]: false }));
         if (data.closedMethod) setOpenMethods((prev) => ({ ...prev, [data.closedMethod]: false }));
         alert('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถสร้างรายการชำระเงินได้'));
@@ -630,14 +634,18 @@ export default function App() {
           </div>
 
           {/* ปุ่มกดชำระเงิน */}
-          {!gameOpen ? (
+          {offline ? (
+            <p className="text-sm text-amber-300 text-center">
+              ขออภัย ระบบเติมเหรียญปิดชั่วคราว (กำลังแก้ไข) กรุณาลองใหม่ภายหลัง ยังไม่มีการเรียกเก็บเงิน
+            </p>
+          ) : !gameOpen ? (
             <p className="text-sm text-amber-300 text-center">ขออภัย ตอนนี้ปิดรับออเดอร์ทุกเกมชั่วคราว</p>
           ) : !methodOpen && (
             <p className="text-sm text-amber-300 text-center">ขออภัย ช่องทางชำระเงินปิดปรับปรุงชั่วคราว กรุณาลองใหม่ภายหลัง</p>
           )}
           <button
             type="submit"
-            disabled={loading || !gameOpen || !methodOpen}
+            disabled={loading || offline || !gameOpen || !methodOpen}
             className={`w-full text-white font-medium py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50 ${
               method === 'truemoney'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400'
