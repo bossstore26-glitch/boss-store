@@ -6,7 +6,7 @@ import { checkOpen } from './_shop.js';
 // ตั้งค่าใน Vercel > Settings > Environment Variables:
 //   TMN_LINK_TOKEN       Token ของบริการ "สร้างลิงก์รับเงิน"
 //   TMN_RECEIVER_MOBILE  เบอร์ทรูมันนี่ร้านที่รับเงิน 10 หลัก
-// ข้อความในลิงก์ "เติมเกมรอยัล|สยาม เพจBOSS STORE (<ไอดีเกม>) #<รหัส>" บอทอ่านจากแจ้งรับเงิน
+// ข้อความในลิงก์ "เติมเกมรอยัล|สยาม เพจBOSS STORE ID <ไอดีเกม> #<รหัส>" บอทอ่านจากแจ้งรับเงิน
 // แล้วโอนเหรียญเกมนั้นให้ไอดีนี้ (คำว่า "สยาม" = เกม Siam)
 const API = 'https://apis.truemoneyservices.com/utils/v1/transfer-link-generator';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // ไม่มี 0/O/1/I กันสับสน
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         mobile_number: mobile,
         amount: amount.toFixed(2),
-        message: `เติมเกม${GAMES[game].tmnWord} เพจBOSS STORE (${gameId}) #${code}`,
+        message: `เติมเกม${GAMES[game].tmnWord} เพจBOSS STORE ID ${gameId} #${code}`,
       }),
     });
     const d = await r.json().catch(() => ({}));
