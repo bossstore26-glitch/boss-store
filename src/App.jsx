@@ -301,12 +301,13 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(loadPending);
   const [showPackages, setShowPackages] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const baht = Number(customAmount);
   const chipsAmount = chipsFor(baht);
 
-  // สร้าง QR PromptPay แล้วแสดงบนหน้านี้เลย
-  const handleCheckout = async (e) => {
+  // กดชำระ → ตรวจข้อมูล → ป๊อปอัปให้ลูกค้ายืนยันไอดีก่อน
+  const handleCheckout = (e) => {
     e.preventDefault();
 
     if (!/^\d{4,12}$/.test(gameId)) {
@@ -319,6 +320,12 @@ export default function App() {
       return;
     }
 
+    setConfirming(true);
+  };
+
+  // ยืนยันไอดีแล้ว → สร้าง QR PromptPay / ลิงก์ TrueMoney แล้วแสดงบนหน้านี้เลย
+  const createPayment = async () => {
+    setConfirming(false);
     setLoading(true);
 
     try {
@@ -365,6 +372,56 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center py-10 px-4">
+      {/* ป๊อปอัปเตือนให้ตรวจไอดีก่อนชำระเงิน */}
+      {confirming && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-title"
+          onClick={() => setConfirming(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-[#161a2b] border border-yellow-500/40 rounded-2xl p-6 shadow-2xl text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-4xl">⚠️</div>
+            <h2 id="confirm-title" className="mt-2 text-lg font-bold text-yellow-400">
+              โปรดตรวจสอบไอดีของลูกค้าให้ถูกต้อง
+            </h2>
+            <p className="mt-1 text-xs text-gray-400">ถ้าไอดีผิด เหรียญจะถูกส่งไปไอดีอื่นและเรียกคืนไม่ได้</p>
+
+            <div className="mt-4 bg-[#22273a] rounded-xl py-3">
+              <p className="text-xs text-gray-400">ไอดีผู้เล่น</p>
+              <p className="text-3xl font-bold tracking-wider text-yellow-300 mt-1">{gameId}</p>
+            </div>
+            <p className="mt-3 text-sm text-gray-300">
+              ยอด <span className="font-bold text-white">{baht.toLocaleString()} บาท</span> ·{' '}
+              <span className="text-pink-400 font-bold">{chipsAmount.toLocaleString()} เหรียญ</span> ·{' '}
+              {method === 'truemoney' ? 'TrueMoney' : 'PromptPay'}
+            </p>
+
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={createPayment}
+                autoFocus
+                className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold py-3 rounded-xl transition"
+              >
+                ไอดีถูกต้อง ดำเนินการต่อ
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="w-full bg-[#1a243f] border border-gray-700 hover:border-gray-500 text-gray-200 py-3 rounded-xl transition"
+              >
+                แก้ไขไอดี
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="w-full max-w-md bg-[#131b2e] border border-gray-800 rounded-2xl p-6 shadow-xl">
         <div className="flex items-center justify-between mb-6">
