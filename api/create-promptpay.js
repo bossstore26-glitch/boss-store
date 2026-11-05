@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { MIN_BAHT, MAX_BAHT, chipsFor } from './_rates.js';
+import { GAMES, MAX_BAHT, chipsFor, minBaht } from './_rates.js';
 
 // สร้าง QR PromptPay ให้แสดงบนหน้าเว็บเราเอง (ไม่ต้องเด้งไปหน้า Stripe)
 // เรทราคาอยู่ใน api/_rates.js (คำนวณที่ server เท่านั้น ห้ามเชื่อค่าจากหน้าเว็บ)
@@ -15,16 +15,21 @@ export default async function handler(req, res) {
   try {
     const gameId = String(req.body?.gameId ?? '').trim();
     const amount = Number(req.body?.amount);
+    const game = String(req.body?.game ?? 'royal');
 
+    if (!GAMES[game]) {
+      return res.status(400).json({ error: 'ไม่รู้จักเกมนี้' });
+    }
     if (!/^\d{4,12}$/.test(gameId)) {
       return res.status(400).json({ error: 'ไอดีเกมต้องเป็นตัวเลขเท่านั้น' });
     }
-    if (!Number.isInteger(amount) || amount < MIN_BAHT || amount > MAX_BAHT) {
-      return res.status(400).json({ error: `กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${MIN_BAHT}–${MAX_BAHT.toLocaleString()} บาท` });
+    const min = minBaht(game);
+    if (!Number.isInteger(amount) || amount < min || amount > MAX_BAHT) {
+      return res.status(400).json({ error: `กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${min}–${MAX_BAHT.toLocaleString()} บาท` });
     }
 
     // ไม่ใช้ chips จาก req.body เด็ดขาด
-    const chips = chipsFor(amount);
+    const chips = chipsFor(amount, game);
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const intent = await stripe.paymentIntents.create({
@@ -36,11 +41,12 @@ export default async function handler(req, res) {
         billing_details: { email: BILLING_EMAIL },
       },
       confirm: true,
-      description: `เติมเหรียญ Royal Game ${chips.toLocaleString()} เหรียญ (ID ${gameId})`,
-      // บอทอ่าน game_id / chips จากตรงนี้ (event payment_intent.succeeded)
+      description: `เติมเหรียญ ${GAMES[game].name} ${chips.toLocaleString()} เหรียญ (ID ${gameId})`,
+      // บอทอ่าน game_id / chips / game จากตรงนี้ (event payment_intent.succeeded)
       metadata: {
         game_id: gameId,
         chips: String(chips),
+        game,
         source: 'web_qr',
       },
     });
@@ -56,6 +62,7 @@ export default async function handler(req, res) {
       amount,
       chips,
       gameId,
+      game,
       qrData: qr.data,            // ข้อความ EMVCo ใช้วาด QR เองบนหน้าเว็บ
       qrImage: qr.image_url_png,  // รูปสำรองจาก Stripe
       expiresAt: qr.expires_at,   // unix seconds

@@ -1,11 +1,12 @@
 import crypto from 'node:crypto';
-import { MIN_BAHT, MAX_BAHT, chipsFor } from './_rates.js';
+import { GAMES, MAX_BAHT, chipsFor, minBaht } from './_rates.js';
 
 // สร้างลิงก์รับเงินทรูมันนี่ (TrueMoney > บริการร้านค้า > สร้างลิงก์รับเงิน)
 // ตั้งค่าใน Vercel > Settings > Environment Variables:
 //   TMN_LINK_TOKEN       Token ของบริการ "สร้างลิงก์รับเงิน"
 //   TMN_RECEIVER_MOBILE  เบอร์ทรูมันนี่ร้านที่รับเงิน 10 หลัก
-// ข้อความในลิงก์ "เติมเกมรอยัล เพจBOSS STORE (<ไอดีเกม>) #<รหัส>" บอทอ่านจากแจ้งรับเงินแล้วโอนเหรียญให้ไอดีนี้
+// ข้อความในลิงก์ "เติมเกมรอยัล|สยาม เพจBOSS STORE (<ไอดีเกม>) #<รหัส>" บอทอ่านจากแจ้งรับเงิน
+// แล้วโอนเหรียญเกมนั้นให้ไอดีนี้ (คำว่า "สยาม" = เกม Siam)
 const API = 'https://apis.truemoneyservices.com/utils/v1/transfer-link-generator';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // ไม่มี 0/O/1/I กันสับสน
 const LINK_MINUTES = 30;
@@ -29,14 +30,19 @@ export default async function handler(req, res) {
 
   const gameId = String(req.body?.gameId ?? '').trim();
   const amount = Number(req.body?.amount);
+  const game = String(req.body?.game ?? 'royal');
+  if (!GAMES[game]) {
+    return res.status(400).json({ error: 'ไม่รู้จักเกมนี้' });
+  }
   if (!/^\d{4,12}$/.test(gameId)) {
     return res.status(400).json({ error: 'ไอดีเกมต้องเป็นตัวเลขเท่านั้น' });
   }
-  if (!Number.isInteger(amount) || amount < MIN_BAHT || amount > MAX_BAHT) {
-    return res.status(400).json({ error: `กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${MIN_BAHT}–${MAX_BAHT.toLocaleString()} บาท` });
+  const min = minBaht(game);
+  if (!Number.isInteger(amount) || amount < min || amount > MAX_BAHT) {
+    return res.status(400).json({ error: `กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${min}–${MAX_BAHT.toLocaleString()} บาท` });
   }
 
-  const chips = chipsFor(amount);
+  const chips = chipsFor(amount, game);
   const code = newCode();
 
   try {
@@ -46,7 +52,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         mobile_number: mobile,
         amount: amount.toFixed(2),
-        message: `เติมเกมรอยัล เพจBOSS STORE (${gameId}) #${code}`,
+        message: `เติมเกม${GAMES[game].tmnWord} เพจBOSS STORE (${gameId}) #${code}`,
       }),
     });
     const d = await r.json().catch(() => ({}));
@@ -64,6 +70,7 @@ export default async function handler(req, res) {
       amount,
       chips,
       gameId,
+      game,
       expiresAt: Math.floor(Date.now() / 1000) + LINK_MINUTES * 60,
     });
   } catch (err) {
