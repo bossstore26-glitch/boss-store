@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { GAMES, MAX_BAHT, chipsFor, minBaht } from './_rates.js';
+import { checkOpen } from './_shop.js';
 
 // สร้างลิงก์รับเงินทรูมันนี่ (TrueMoney > บริการร้านค้า > สร้างลิงก์รับเงิน)
 // ตั้งค่าใน Vercel > Settings > Environment Variables:
@@ -41,6 +42,8 @@ export default async function handler(req, res) {
   if (!Number.isInteger(amount) || amount < min || amount > MAX_BAHT) {
     return res.status(400).json({ error: `กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${min}–${MAX_BAHT.toLocaleString()} บาท` });
   }
+  const closed = await checkOpen(game, GAMES[game].name, 'truemoney');
+  if (closed) return res.status(closed.status).json(closed.body);
 
   const chips = chipsFor(amount, game);
   const code = newCode();

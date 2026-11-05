@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { GAMES, MAX_BAHT, chipsFor, minBaht } from './_rates.js';
+import { checkOpen } from './_shop.js';
 
 // สร้าง QR PromptPay ให้แสดงบนหน้าเว็บเราเอง (ไม่ต้องเด้งไปหน้า Stripe)
 // เรทราคาอยู่ใน api/_rates.js (คำนวณที่ server เท่านั้น ห้ามเชื่อค่าจากหน้าเว็บ)
@@ -27,6 +28,8 @@ export default async function handler(req, res) {
     if (!Number.isInteger(amount) || amount < min || amount > MAX_BAHT) {
       return res.status(400).json({ error: `กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${min}–${MAX_BAHT.toLocaleString()} บาท` });
     }
+    const closed = await checkOpen(game, GAMES[game].name, 'promptpay');
+    if (closed) return res.status(closed.status).json(closed.body);
 
     // ไม่ใช้ chips จาก req.body เด็ดขาด
     const chips = chipsFor(amount, game);
