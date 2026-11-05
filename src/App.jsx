@@ -255,7 +255,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
               <canvas ref={canvasRef} className="w-48 h-48 block" />
             </div>
             <div className="mt-4 w-full bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs rounded-xl px-4 py-3 leading-relaxed">
-              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b> (BOSS {pending.gameId} #{pending.id})
+              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b> (เติมเกมรอยัล เพจBOSS STORE ({pending.gameId}) #{pending.id})
               ในหน้าโอน ไม่งั้นระบบส่งเหรียญอัตโนมัติไม่ได้
             </div>
             <p className="mt-5 text-sm text-gray-200 flex items-center gap-2">
