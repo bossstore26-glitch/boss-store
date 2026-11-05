@@ -303,7 +303,44 @@ export default function App() {
   const [showPackages, setShowPackages] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [game, setGame] = useState('royal');
+  // เกมที่ร้านเปิดรับ (ปิดชั่วคราวได้จากแผงควบคุมที่คอมร้าน) ถามทุก 60 วิ
+  const [openGames, setOpenGames] = useState(() => Object.fromEntries(GAME_KEYS.map((k) => [k, true])));
+  // ช่องทางจ่ายที่เปิดอยู่ (ร้านปิดปรับปรุงได้จากแผงควบคุม)
+  const [openMethods, setOpenMethods] = useState(() => Object.fromEntries(METHODS.map((m) => [m.key, true])));
 
+  useEffect(() => {
+    let stopped = false;
+    const load = async () => {
+      try {
+        const d = await (await fetch('/api/shop-status')).json();
+        if (stopped) return;
+        if (d.games) setOpenGames((prev) => ({ ...prev, ...d.games }));
+        if (d.methods) setOpenMethods((prev) => ({ ...prev, ...d.methods }));
+      } catch {}
+    };
+    load();
+    const timer = setInterval(load, 60000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, []);
+
+  // เกมที่เลือกอยู่ถูกปิด → สลับไปเกมที่เปิดอยู่ให้เอง
+  useEffect(() => {
+    if (!openGames[game]) {
+      const next = GAME_KEYS.find((k) => openGames[k]);
+      if (next) setGame(next);
+    }
+  }, [openGames, game]);
+
+  // ช่องทางที่เลือกอยู่ถูกปิด → สลับไปช่องทางที่เปิดอยู่ให้เอง
+  useEffect(() => {
+    if (!openMethods[method]) {
+      const next = METHODS.find((m) => openMethods[m.key]);
+      if (next) setMethod(next.key);
+    }
+  }, [openMethods, method]);
+
+  const gameOpen = !!openGames[game];
+  const methodOpen = !!openMethods[method];
   const gameInfo = GAMES[game];
   const MIN_BAHT = minBaht(game);
   const PACKAGES = gameInfo.packages;
@@ -314,6 +351,14 @@ export default function App() {
   const handleCheckout = (e) => {
     e.preventDefault();
 
+    if (!gameOpen) {
+      alert(`ขออภัย ${gameInfo.name} ปิดรับออเดอร์ชั่วคราว`);
+      return;
+    }
+    if (!methodOpen) {
+      alert('ขออภัย ช่องทางชำระเงินปิดปรับปรุงชั่วคราว');
+      return;
+    }
     if (!/^\d{4,12}$/.test(gameId)) {
       alert('กรุณากรอกไอดีเกมเป็นตัวเลขให้ถูกต้อง');
       return;
@@ -345,6 +390,8 @@ export default function App() {
         savePending(data);
         setPending(data);
       } else {
+        if (data.closed) setOpenGames((prev) => ({ ...prev, [data.closed]: false }));
+        if (data.closedMethod) setOpenMethods((prev) => ({ ...prev, [data.closedMethod]: false }));
         alert('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถสร้างรายการชำระเงินได้'));
       }
     } catch (err) {
@@ -445,19 +492,25 @@ export default function App() {
             <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="เลือกเกม">
               {GAME_KEYS.map((key) => {
                 const on = game === key;
+                const open = openGames[key];
                 return (
                   <button
                     key={key}
                     type="button"
                     role="radio"
                     aria-checked={on}
+                    disabled={!open}
                     onClick={() => { setGame(key); setShowPackages(false); }}
                     className={`rounded-xl px-3 py-2.5 border transition text-center ${
-                      on ? 'bg-yellow-500/15 border-yellow-400' : 'bg-[#1a243f] border-gray-700 hover:border-gray-500'
+                      !open
+                        ? 'bg-[#1a243f] border-gray-800 opacity-50 cursor-not-allowed'
+                        : on ? 'bg-yellow-500/15 border-yellow-400' : 'bg-[#1a243f] border-gray-700 hover:border-gray-500'
                     }`}
                   >
-                    <span className={`block font-bold ${on ? 'text-yellow-300' : 'text-gray-200'}`}>{GAMES[key].name}</span>
-                    <span className="block text-xs text-gray-400 mt-0.5">ขั้นต่ำ {minBaht(key)} บาท</span>
+                    <span className={`block font-bold ${on && open ? 'text-yellow-300' : 'text-gray-200'}`}>{GAMES[key].name}</span>
+                    <span className={`block text-xs mt-0.5 ${open ? 'text-gray-400' : 'text-amber-300'}`}>
+                      {open ? `ขั้นต่ำ ${minBaht(key)} บาท` : 'ปิดชั่วคราว'}
+                    </span>
                   </button>
                 );
               })}
@@ -547,7 +600,8 @@ export default function App() {
             <label className="block text-sm font-medium text-gray-300 mb-2">4. ช่องทางชำระเงิน</label>
             <div className="grid grid-cols-2 gap-2" role="radiogroup">
               {METHODS.map((m) => {
-                const on = method === m.key;
+                const open = openMethods[m.key];
+                const on = method === m.key && open;
                 const tmn = m.key === 'truemoney';
                 return (
                   <button
@@ -555,15 +609,20 @@ export default function App() {
                     type="button"
                     role="radio"
                     aria-checked={on}
+                    disabled={!open}
                     onClick={() => setMethod(m.key)}
                     className={`rounded-xl px-3 py-2.5 text-left border transition ${
-                      on
-                        ? tmn ? 'bg-orange-500/20 border-orange-400' : 'bg-purple-600/30 border-purple-400'
-                        : 'bg-[#1a243f] border-gray-700 hover:border-gray-500'
+                      !open
+                        ? 'bg-[#1a243f] border-gray-800 opacity-50 cursor-not-allowed'
+                        : on
+                          ? tmn ? 'bg-orange-500/20 border-orange-400' : 'bg-purple-600/30 border-purple-400'
+                          : 'bg-[#1a243f] border-gray-700 hover:border-gray-500'
                     }`}
                   >
                     <span className={`block font-bold text-sm ${tmn ? 'text-orange-300' : 'text-indigo-200'}`}>{m.label}</span>
-                    <span className="block text-xs text-gray-400 mt-0.5">{m.sub}</span>
+                    <span className={`block text-xs mt-0.5 ${open ? 'text-gray-400' : 'text-amber-300'}`}>
+                      {open ? m.sub : 'ปิดปรับปรุงชั่วคราว'}
+                    </span>
                   </button>
                 );
               })}
@@ -571,9 +630,14 @@ export default function App() {
           </div>
 
           {/* ปุ่มกดชำระเงิน */}
+          {!gameOpen ? (
+            <p className="text-sm text-amber-300 text-center">ขออภัย ตอนนี้ปิดรับออเดอร์ทุกเกมชั่วคราว</p>
+          ) : !methodOpen && (
+            <p className="text-sm text-amber-300 text-center">ขออภัย ช่องทางชำระเงินปิดปรับปรุงชั่วคราว กรุณาลองใหม่ภายหลัง</p>
+          )}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !gameOpen || !methodOpen}
             className={`w-full text-white font-medium py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50 ${
               method === 'truemoney'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400'
