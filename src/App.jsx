@@ -182,8 +182,121 @@ function PaymentCard({ pending, onDone, onCancel }) {
   );
 }
 
+// ทรูมันนี่: กดเปิดแอป (มือถือ) หรือสแกน QR ลิงก์ (คอม) ยอดและข้อความถูกกรอกให้แล้ว
+function TrueMoneyCard({ pending, onDone, onCancel }) {
+  const canvasRef = useRef(null);
+  const [status, setStatus] = useState('waiting');
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    QRCode.toCanvas(canvasRef.current, pending.url, { errorCorrectionLevel: 'M', margin: 2, width: 480 })
+      .then(() => { canvasRef.current.style.width = ''; canvasRef.current.style.height = ''; })
+      .catch(console.error);
+  }, [pending.url]);
+
+  // ถามบอทว่าเงินเข้าหรือยัง (บอทยืนยันกับ TrueMoney แล้วถึงตอบว่าจ่ายแล้ว)
+  useEffect(() => {
+    let stopped = false;
+    let timer;
+    const tick = async () => {
+      try {
+        const r = await fetch(`/api/truemoney-status?code=${encodeURIComponent(pending.id)}`);
+        const d = await r.json();
+        if (stopped) return;
+        if (d.status === 'paid') {
+          setStatus('paid');
+          savePending(null);
+          return;
+        }
+      } catch {}
+      if (!stopped) timer = setTimeout(tick, 5000);
+    };
+    timer = setTimeout(tick, 5000);
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [pending.id]);
+
+  const paid = status === 'paid';
+
+  return (
+    <div className="w-full max-w-md rounded-2xl overflow-hidden border border-orange-500/30 shadow-2xl bg-[#161a2b]">
+      <div className="bg-gradient-to-br from-orange-500 to-amber-500 px-6 py-5">
+        <h1 className="text-2xl font-bold">เติมเหรียญผ่าน TrueMoney</h1>
+        <p className="text-sm text-orange-50 mt-1">กดปุ่มเปิดแอปทรูมันนี่ ยอดและข้อความกรอกไว้ให้แล้ว</p>
+      </div>
+
+      <div className="px-6 py-6 flex flex-col items-center">
+        <div className="w-full bg-[#22273a] rounded-xl py-3 text-center">
+          เติมให้ไอดี <span className="text-yellow-400 font-bold">{pending.gameId}</span>
+        </div>
+
+        <p className="mt-5 text-sm text-gray-300">ยอดโอน</p>
+        <p className="text-3xl font-bold mt-1">
+          ฿{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </p>
+        <p className="text-xs text-pink-400 mt-1">{pending.chips.toLocaleString()} เหรียญ</p>
+
+        {paid ? (
+          <div className="mt-5 w-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
+            <span>ได้รับเงินแล้ว ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)</span>
+          </div>
+        ) : (
+          <>
+            <a
+              href={pending.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2"
+            >
+              เปิดแอป TrueMoney เพื่อโอน <ArrowRight className="w-4 h-4" />
+            </a>
+            <p className="mt-4 text-xs text-gray-400">ใช้คอมอยู่? สแกน QR นี้ด้วยกล้องมือถือ</p>
+            <div className="mt-2 bg-white rounded-2xl p-3">
+              <canvas ref={canvasRef} className="w-48 h-48 block" />
+            </div>
+            <div className="mt-4 w-full bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs rounded-xl px-4 py-3 leading-relaxed">
+              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b> (BOSS {pending.gameId} #{pending.id})
+              ในหน้าโอน ไม่งั้นระบบส่งเหรียญอัตโนมัติไม่ได้
+            </div>
+            <p className="mt-5 text-sm text-gray-200 flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-orange-400" />
+              รอการโอนเงิน...
+            </p>
+          </>
+        )}
+
+        <div className="mt-4 flex gap-6 text-sm">
+          {paid ? (
+            <button onClick={onDone} className="text-orange-300 underline underline-offset-4 hover:text-orange-200">
+              เติมเพิ่ม
+            </button>
+          ) : (
+            <button
+              onClick={() => { savePending(null); onCancel(); }}
+              className="text-orange-300 underline underline-offset-4 hover:text-orange-200"
+            >
+              ยกเลิก / แก้ไขยอด
+            </button>
+          )}
+        </div>
+        {!paid && (
+          <p className="mt-3 text-xs text-gray-500 text-center">
+            ถ้าโอนแล้วแต่ไม่ขึ้นภายใน 5 นาที ทักแอดมินพร้อมรหัส #{pending.id}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const METHODS = [
+  { key: 'promptpay', label: 'PromptPay', sub: 'สแกน QR แอปธนาคาร' },
+  { key: 'truemoney', label: 'TrueMoney', sub: 'โอนผ่านแอปทรูมันนี่' },
+];
+
 export default function App() {
   const [gameId, setGameId] = useState('');
+  const [method, setMethod] = useState('promptpay');
   const [customAmount, setCustomAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(loadPending);
@@ -209,7 +322,7 @@ export default function App() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/create-promptpay', {
+      const response = await fetch(method === 'truemoney' ? '/api/create-truemoney' : '/api/create-promptpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gameId, amount: baht })
@@ -217,7 +330,7 @@ export default function App() {
 
       const data = await response.json();
 
-      if (data.id && data.qrData) {
+      if (data.id && (data.qrData || data.url)) {
         savePending(data);
         setPending(data);
       } else {
@@ -233,11 +346,19 @@ export default function App() {
   if (pending) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0b0f19] to-[#1b1340] text-white flex flex-col items-center py-10 px-4">
-        <PaymentCard
-          pending={pending}
-          onDone={() => { savePending(null); setPending(null); setCustomAmount(''); }}
-          onCancel={() => setPending(null)}
-        />
+        {pending.method === 'truemoney' ? (
+          <TrueMoneyCard
+            pending={pending}
+            onDone={() => { savePending(null); setPending(null); setCustomAmount(''); }}
+            onCancel={() => setPending(null)}
+          />
+        ) : (
+          <PaymentCard
+            pending={pending}
+            onDone={() => { savePending(null); setPending(null); setCustomAmount(''); }}
+            onCancel={() => setPending(null)}
+          />
+        )}
       </div>
     );
   }
@@ -334,14 +455,50 @@ export default function App() {
             )}
           </div>
 
+          {/* เลือกช่องทางชำระเงิน */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">3. ช่องทางชำระเงิน</label>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup">
+              {METHODS.map((m) => {
+                const on = method === m.key;
+                const tmn = m.key === 'truemoney';
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setMethod(m.key)}
+                    className={`rounded-xl px-3 py-2.5 text-left border transition ${
+                      on
+                        ? tmn ? 'bg-orange-500/20 border-orange-400' : 'bg-purple-600/30 border-purple-400'
+                        : 'bg-[#1a243f] border-gray-700 hover:border-gray-500'
+                    }`}
+                  >
+                    <span className={`block font-bold text-sm ${tmn ? 'text-orange-300' : 'text-indigo-200'}`}>{m.label}</span>
+                    <span className="block text-xs text-gray-400 mt-0.5">{m.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* ปุ่มกดชำระเงิน */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+            className={`w-full text-white font-medium py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50 ${
+              method === 'truemoney'
+                ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400'
+                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500'
+            }`}
           >
             {loading ? (
-              'กำลังสร้าง QR...'
+              method === 'truemoney' ? 'กำลังสร้างลิงก์...' : 'กำลังสร้าง QR...'
+            ) : method === 'truemoney' ? (
+              <>
+                <CreditCard className="w-5 h-5" /> ชำระผ่าน TrueMoney <ArrowRight className="w-4 h-4" />
+              </>
             ) : (
               <>
                 <CreditCard className="w-5 h-5" /> สร้าง QR ชำระเงิน PromptPay <ArrowRight className="w-4 h-4" />
@@ -351,7 +508,8 @@ export default function App() {
         </form>
 
         <div className="mt-6 text-center text-xs text-gray-500 flex items-center justify-center gap-1">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" /> ชำระเงินปลอดภัยผ่าน Stripe PromptPay
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          {method === 'truemoney' ? 'ระบบตรวจสอบยอดโอนกับ TrueMoney อัตโนมัติ' : 'ชำระเงินปลอดภัยผ่าน Stripe PromptPay'}
         </div>
       </div>
     </div>
