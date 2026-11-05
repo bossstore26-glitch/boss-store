@@ -187,11 +187,9 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
   const canvasRef = useRef(null);
   const [status, setStatus] = useState('waiting');
 
+  // QR แบบเดียวกับ PromptPay (มีป้ายแดงตรงกลาง)
   useEffect(() => {
-    if (!canvasRef.current) return;
-    QRCode.toCanvas(canvasRef.current, pending.url, { errorCorrectionLevel: 'M', margin: 2, width: 480 })
-      .then(() => { canvasRef.current.style.width = ''; canvasRef.current.style.height = ''; })
-      .catch(console.error);
+    if (canvasRef.current) drawQr(canvasRef.current, pending.url).catch(console.error);
   }, [pending.url]);
 
   // ถามบอทว่าเงินเข้าหรือยัง (บอทยืนยันกับ TrueMoney แล้วถึงตอบว่าจ่ายแล้ว)
@@ -252,7 +250,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
             </a>
             <p className="mt-4 text-xs text-gray-400">ใช้คอมอยู่? สแกน QR นี้ด้วยกล้องมือถือ</p>
             <div className="mt-2 bg-white rounded-2xl p-3">
-              <canvas ref={canvasRef} className="w-48 h-48 block" />
+              <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
             </div>
             <div className="mt-4 w-full bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs rounded-xl px-4 py-3 leading-relaxed">
               ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b> (เติมเกมรอยัล เพจBOSS STORE ({pending.gameId}) #{pending.id})
