@@ -5,7 +5,7 @@ import { MIN_BAHT, MAX_BAHT, chipsFor } from './_rates.js';
 // ตั้งค่าใน Vercel > Settings > Environment Variables:
 //   TMN_LINK_TOKEN       Token ของบริการ "สร้างลิงก์รับเงิน"
 //   TMN_RECEIVER_MOBILE  เบอร์ทรูมันนี่ร้านที่รับเงิน 10 หลัก
-// ข้อความในลิงก์ "BOSS <ไอดีเกม> #<รหัส>" บอทอ่านจากแจ้งรับเงินแล้วโอนเหรียญให้ไอดีนี้
+// ข้อความในลิงก์ "เติมเกมรอยัล เพจBOSS STORE (<ไอดีเกม>) #<รหัส>" บอทอ่านจากแจ้งรับเงินแล้วโอนเหรียญให้ไอดีนี้
 const API = 'https://apis.truemoneyservices.com/utils/v1/transfer-link-generator';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // ไม่มี 0/O/1/I กันสับสน
 const LINK_MINUTES = 30;
@@ -43,7 +43,11 @@ export default async function handler(req, res) {
     const r = await fetch(API, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mobile_number: mobile, amount: amount.toFixed(2), message: `BOSS ${gameId} #${code}` }),
+      body: JSON.stringify({
+        mobile_number: mobile,
+        amount: amount.toFixed(2),
+        message: `เติมเกมรอยัล เพจBOSS STORE (${gameId}) #${code}`,
+      }),
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || d.status !== 'ok' || !d.data?.url) {
