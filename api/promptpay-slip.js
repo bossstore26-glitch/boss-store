@@ -1,7 +1,8 @@
 // ลูกค้าอัปโหลดสลิปพร้อมเพย์ → ส่งต่อให้บอทที่คอมร้านตรวจกับ Slip2Go
 // body: { code: รหัสรายการ 6 ตัว, image: 'data:image/jpeg;base64,...' (หน้าเว็บย่อภาพให้แล้ว) }
 // ตอบ: { status: paid | review | rejected | retry | locked | busy | bad | error, message }
-export const config = { api: { bodyParser: { sizeLimit: '4mb' } } };
+// maxDuration: Slip2Go ตอบช้าได้ (ค่าเริ่ม Vercel 10 วิ ตัดกลางทาง → หน้าเว็บขึ้น "เชื่อมต่อไม่ได้" 7 พ.ย.)
+export const config = { maxDuration: 60, api: { bodyParser: { sizeLimit: '4mb' } } };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
