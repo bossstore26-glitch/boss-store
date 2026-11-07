@@ -8,6 +8,7 @@ import { checkOpen, idStatus, BLOCKED_MESSAGE } from './_shop.js';
 const PROMPTPAY_ID = String(process.env.PROMPTPAY_ID || '0950871209').replace(/\D/g, '');
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // ไม่มี 0/O/1/I กันสับสน
 const UPLOAD_HOURS = 24; // ตรงกับ PP_UPLOAD_HOURS ในบอท
+const QR_MINUTES = 10; // ตรงกับ PP_QR_MINUTES ในบอท (โอนช้ากว่านี้ บอทกักให้ร้านตรวจ)
 
 function newCode() {
   const bytes = crypto.randomBytes(6);
@@ -99,6 +100,7 @@ export default async function handler(req, res) {
     gameId,
     game,
     verified: idInfo.verified, // ไอดีใหม่ → ร้านตรวจก่อนส่งครั้งแรก
-    expiresAt: Math.floor(Date.now() / 1000) + UPLOAD_HOURS * 3600,
+    qrExpiresAt: Math.floor(Date.now() / 1000) + QR_MINUTES * 60, // QR หายจากหน้าเว็บ
+    expiresAt: Math.floor(Date.now() / 1000) + UPLOAD_HOURS * 3600, // อัปโหลดสลิปได้ถึงเมื่อไร
   });
 }
