@@ -8,7 +8,11 @@ const POLL_MS = 3000;
 const STORAGE_KEY = 'bossstore_pending_qr';
 
 // ข้อความกลาง QR (QR ใช้ระดับแก้ผิด H ทนการบังได้ราว 30%)
-const QR_LABEL = ['สำหรับเติม Royal Game', 'และ Siam กับร้าน', 'BOSS STORE'];
+// ใส่เกม + ไอดีที่ลูกค้ากรอก กันโกงสามเส้า: คนที่ได้รูป QR ต่อมาจะเห็นว่ากำลังจ่ายเติมเกมให้ไอดีไหน
+// (ครอบตัดป้ายออก QR จะสแกนไม่ได้) ขนาดกล่อง/ตัวอักษรเท่าป้ายเดิมที่ทดสอบสแกนแล้ว
+function qrLabel(game, gameId) {
+  return [`เติม ${gameOf(game).name}`, `ID ${gameId}`, 'ร้าน BOSS STORE'];
+}
 
 function loadPending() {
   try {
@@ -24,7 +28,7 @@ function savePending(p) {
   } catch {}
 }
 
-async function drawQr(canvas, data) {
+async function drawQr(canvas, data, label) {
   const size = 600;
   await QRCode.toCanvas(canvas, data, {
     errorCorrectionLevel: 'H',
@@ -48,8 +52,8 @@ async function drawQr(canvas, data) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = 'bold 23px "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif';
-  const lineH = boxH / (QR_LABEL.length + 0.4);
-  QR_LABEL.forEach((line, i) => {
+  const lineH = boxH / (label.length + 0.4);
+  label.forEach((line, i) => {
     ctx.fillText(line, size / 2, y + lineH * (i + 0.7), boxW - 12);
   });
 }
@@ -60,8 +64,8 @@ function PaymentCard({ pending, onDone, onCancel }) {
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
-    if (canvasRef.current) drawQr(canvasRef.current, pending.qrData).catch(console.error);
-  }, [pending.qrData]);
+    if (canvasRef.current) drawQr(canvasRef.current, pending.qrData, qrLabel(pending.game, pending.gameId)).catch(console.error);
+  }, [pending.qrData, pending.game, pending.gameId]);
 
   // ถามสถานะเป็นระยะ จนจ่ายสำเร็จ / ยกเลิก / หมดเวลา
   useEffect(() => {
@@ -183,15 +187,245 @@ function PaymentCard({ pending, onDone, onCancel }) {
   );
 }
 
+// ย่อภาพสลิปก่อนส่ง (ยาวสุด 1600px JPEG) ให้อัปโหลดเร็วและไม่เกินขนาดที่ server รับ
+// QR บนสลิปยังอ่านได้ชัด (สลิปจากแอปธนาคารปกติสูงไม่เกิน ~2000px)
+async function slipToDataUrl(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = url;
+    });
+    const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.9);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// พร้อมเพย์ธนาคารร้าน: สแกนจ่าย → อัปโหลดสลิป → บอทตรวจสลิปกับธนาคาร (Slip2Go) แล้วส่งเหรียญ
+function BankPromptPayCard({ pending, onDone, onCancel }) {
+  const canvasRef = useRef(null);
+  const fileRef = useRef(null);
+  // idle = รอโอน/อัปโหลด, checking = กำลังตรวจ, paid, review = ร้านตรวจไอดีใหม่, locked
+  const [status, setStatus] = useState('idle');
+  const [msg, setMsg] = useState('');
+  const [msgBad, setMsgBad] = useState(false);
+
+  useEffect(() => {
+    if (canvasRef.current) drawQr(canvasRef.current, pending.qrData, qrLabel(pending.game, pending.gameId)).catch(console.error);
+  }, [pending.qrData, pending.game, pending.gameId]);
+
+  // อัปโหลดแล้วอยู่ระหว่างร้านตรวจ (หรือกลับมาเปิดหน้าใหม่) → ถามสถานะจนส่งเหรียญ
+  useEffect(() => {
+    let stopped = false;
+    let timer;
+    const tick = async () => {
+      try {
+        const r = await fetch(`/api/truemoney-status?code=${encodeURIComponent(pending.id)}`);
+        const d = await r.json();
+        if (stopped) return;
+        if (d.status === 'paid') {
+          setStatus('paid');
+          savePending(null);
+          return;
+        }
+        if (d.status === 'review') setStatus((s) => (s === 'checking' ? s : 'review'));
+      } catch {}
+      if (!stopped) timer = setTimeout(tick, 5000);
+    };
+    timer = setTimeout(tick, 1000);
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [pending.id]);
+
+  const upload = async (file) => {
+    if (!file) return;
+    setStatus('checking');
+    setMsg('');
+    try {
+      const image = await slipToDataUrl(file);
+      const r = await fetch('/api/promptpay-slip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: pending.id, image }),
+      });
+      const d = await r.json();
+      setMsg(d.message || '');
+      if (d.status === 'paid') {
+        setStatus('paid');
+        setMsgBad(false);
+        savePending(null);
+      } else if (d.status === 'review') {
+        setStatus('review');
+        setMsgBad(false);
+      } else {
+        setStatus(d.status === 'locked' ? 'locked' : 'idle');
+        setMsgBad(true);
+      }
+    } catch {
+      setStatus('idle');
+      setMsgBad(true);
+      setMsg('อ่านไฟล์หรือเชื่อมต่อไม่ได้ กรุณาเลือกภาพสลิปใหม่อีกครั้ง');
+    }
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const saveQr = () => {
+    const a = document.createElement('a');
+    a.href = canvasRef.current.toDataURL('image/png');
+    a.download = `BOSS-STORE-QR-${pending.amount}บาท.png`;
+    a.click();
+  };
+
+  const cancel = () => {
+    if (!window.confirm('ถ้าโอนเงินไปแล้ว ห้ามยกเลิก ให้กด "อัปโหลดสลิป" แทน\n\nยังไม่ได้โอน และต้องการยกเลิกรายการนี้?')) return;
+    savePending(null);
+    onCancel();
+  };
+
+  const paid = status === 'paid';
+  const review = status === 'review';
+  const checking = status === 'checking';
+  const locked = status === 'locked';
+
+  return (
+    <div className="w-full max-w-md rounded-2xl overflow-hidden border border-indigo-500/30 shadow-2xl bg-[#161a2b]">
+      <div className="bg-gradient-to-br from-violet-500 to-indigo-600 px-6 py-5">
+        <h1 className="text-2xl font-bold">เติมเหรียญผ่านพร้อมเพย์</h1>
+        <p className="text-sm text-indigo-100 mt-1">สแกนจ่ายด้วยแอปธนาคาร แล้วอัปโหลดสลิป</p>
+      </div>
+
+      <div className="px-6 py-6 flex flex-col items-center">
+        <div className="w-full bg-[#22273a] rounded-xl py-3 text-center">
+          เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
+          <span className="text-yellow-400 font-bold">{pending.gameId}</span>
+        </div>
+
+        <p className="mt-5 text-sm text-gray-300">ยอดโอน (ต้องตรงตามนี้)</p>
+        <p className="text-3xl font-bold mt-1">
+          ฿{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </p>
+        <p className="text-xs text-pink-400 mt-1">{formatChips(pending.chips, pending.game)} เหรียญ</p>
+
+        {!paid && !review && (
+          <div className="mt-4 bg-white rounded-2xl p-3">
+            <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
+          </div>
+        )}
+
+        {paid ? (
+          <div className="mt-5 w-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
+            <span>ตรวจสลิปผ่าน ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)</span>
+          </div>
+        ) : review ? (
+          <div className="mt-5 w-full bg-amber-500/10 border border-amber-500/40 text-amber-200 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+            <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
+            <span>
+              ได้รับเงินแล้ว ✅ ร้านกำลังตรวจสอบไอดีก่อนส่งเหรียญ (ลูกค้าใหม่ตรวจครั้งแรกครั้งเดียว ครั้งต่อไปได้ทันที)
+              <br />ไม่ต้องอัปโหลดซ้ำ หน้านี้จะเปลี่ยนเองเมื่อส่งเหรียญ
+            </span>
+          </div>
+        ) : (
+          <>
+            <ol className="mt-5 w-full text-sm text-gray-200 space-y-1 list-decimal list-inside">
+              <li>สแกน QR หรือบันทึก QR ไปเปิดในแอปธนาคาร</li>
+              <li>โอนยอด <span className="font-bold">{pending.amount.toLocaleString()} บาท</span> ตรงตามนี้</li>
+              <li>กดปุ่มด้านล่าง เลือกภาพสลิปจากแอปธนาคาร</li>
+            </ol>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => upload(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              disabled={checking || locked}
+              onClick={() => fileRef.current?.click()}
+              className="mt-4 w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {checking ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" /> กำลังตรวจสลิปกับธนาคาร...
+                </>
+              ) : (
+                '📎 โอนแล้ว อัปโหลดสลิป'
+              )}
+            </button>
+            {msg && (
+              <p className={`mt-3 text-sm text-center ${msgBad ? 'text-red-400' : 'text-emerald-300'}`}>{msg}</p>
+            )}
+            <p className="mt-3 text-xs text-gray-400 text-center leading-relaxed">
+              ระบบตรวจสลิปกับธนาคารอัตโนมัติ สลิปปลอม/สลิปเก่า/ยอดไม่ตรงจะไม่ผ่าน
+              <br />อัปโหลดได้ภายใน 24 ชม. (ปิดหน้านี้แล้วกลับมาใหม่ได้)
+            </p>
+          </>
+        )}
+
+        <div className="mt-4 flex gap-6 text-sm">
+          {paid ? (
+            <button onClick={onDone} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
+              เติมเพิ่ม
+            </button>
+          ) : review ? null : (
+            <>
+              <button onClick={saveQr} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
+                บันทึก QR
+              </button>
+              <button onClick={cancel} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
+                ยกเลิก / แก้ไขยอด
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ทรูมันนี่: กดเปิดแอป (มือถือ) หรือสแกน QR ลิงก์ (คอม) ยอดและข้อความถูกกรอกให้แล้ว
 function TrueMoneyCard({ pending, onDone, onCancel }) {
   const canvasRef = useRef(null);
   const [status, setStatus] = useState('waiting');
+  // ไอดีใหม่: ร้านส่ง OTP ไปที่เบอร์ทรูมันนี่ที่โอน ลูกค้ากรอกแล้วได้เหรียญทันที
+  const [otpInfo, setOtpInfo] = useState(null);
+  const [otp, setOtp] = useState('');
+  const [otpMsg, setOtpMsg] = useState('');
+  const [otpBusy, setOtpBusy] = useState(false);
+
+  const otpCall = async (action) => {
+    setOtpBusy(true);
+    try {
+      const r = await fetch('/api/truemoney-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: pending.id, action, otp }),
+      });
+      const d = await r.json();
+      setOtpMsg(d.message || '');
+      if (d.status === 'ok' && action === 'verify') { setStatus('paid'); savePending(null); }
+      if (action === 'resend' && d.status === 'ok') setOtp('');
+    } catch {
+      setOtpMsg('เชื่อมต่อไม่ได้ กรุณาลองใหม่');
+    }
+    setOtpBusy(false);
+  };
 
   // QR แบบเดียวกับ PromptPay (มีป้ายแดงตรงกลาง)
   useEffect(() => {
-    if (canvasRef.current) drawQr(canvasRef.current, pending.url).catch(console.error);
-  }, [pending.url]);
+    if (canvasRef.current) drawQr(canvasRef.current, pending.url, qrLabel(pending.game, pending.gameId)).catch(console.error);
+  }, [pending.url, pending.game, pending.gameId]);
 
   // ถามบอทว่าเงินเข้าหรือยัง (บอทยืนยันกับ TrueMoney แล้วถึงตอบว่าจ่ายแล้ว)
   useEffect(() => {
@@ -207,6 +441,10 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
           savePending(null);
           return;
         }
+        if (d.status === 'review') { // จ่ายแล้ว รอยืนยัน → ถามต่อจนส่งจริง
+          setStatus('review');
+          setOtpInfo(d.otp ? { phone: d.phone } : null);
+        }
       } catch {}
       if (!stopped) timer = setTimeout(tick, 5000);
     };
@@ -215,6 +453,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
   }, [pending.id]);
 
   const paid = status === 'paid';
+  const review = status === 'review';
 
   return (
     <div className="w-full max-w-md rounded-2xl overflow-hidden border border-orange-500/30 shadow-2xl bg-[#161a2b]">
@@ -240,8 +479,61 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
             <CheckCircle2 className="w-5 h-5 shrink-0" />
             <span>ได้รับเงินแล้ว ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)</span>
           </div>
+        ) : review && otpInfo ? (
+          <div className="mt-5 w-full bg-[#22273a] border border-orange-500/40 rounded-xl px-4 py-4">
+            <p className="text-sm text-gray-100 font-semibold">ได้รับเงินแล้ว ✅ ยืนยันตัวตนครั้งแรก</p>
+            <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+              ร้านส่งรหัส 6 หลักทาง SMS ไปที่เบอร์ทรูมันนี่ที่โอน ({otpInfo.phone}) กรอกรหัสเพื่อรับเหรียญทันที
+            </p>
+            <p className="text-xs text-amber-300 mt-2 leading-relaxed">
+              ⚠️ ถ้ามีคนอื่นขอรหัสนี้จากคุณ หรือคุณไม่ได้กำลังเติมเกมให้ไอดีของตัวเอง ห้ามให้รหัส = มิจฉาชีพ
+            </p>
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                placeholder="รหัส 6 หลัก"
+                aria-label="รหัส OTP 6 หลัก"
+                className="flex-1 min-w-0 bg-[#1a243f] border border-gray-700 rounded-xl px-4 py-3 text-white text-lg tracking-widest focus:outline-none focus:border-orange-400"
+              />
+              <button
+                type="button"
+                disabled={otpBusy || otp.length !== 6}
+                onClick={() => otpCall('verify')}
+                className="bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold px-5 rounded-xl disabled:opacity-50"
+              >
+                ยืนยัน
+              </button>
+            </div>
+            {otpMsg && <p className="text-xs text-gray-200 mt-2">{otpMsg}</p>}
+            <button
+              type="button"
+              disabled={otpBusy}
+              onClick={() => otpCall('resend')}
+              className="mt-3 text-xs text-orange-300 underline underline-offset-4 disabled:opacity-50"
+            >
+              ไม่ได้รับ SMS? ขอรหัสใหม่
+            </button>
+          </div>
+        ) : review ? (
+          <div className="mt-5 w-full bg-amber-500/10 border border-amber-500/40 text-amber-200 text-sm rounded-xl px-4 py-3 leading-relaxed">
+            ได้รับเงินแล้ว ✅ ร้านกำลังตรวจสอบก่อนส่งเหรียญ (ไอดีใหม่หรือเบอร์ผู้โอนใหม่ ตรวจครั้งแรกครั้งเดียว)
+            <br />ทักแชทเพจ BOSS STORE พร้อมรหัส <b>#{pending.id}</b> จะได้รับเหรียญเร็วขึ้น
+          </div>
         ) : (
           <>
+            {pending.verified === false && (
+              <div className="mt-5 w-full bg-sky-500/10 border border-sky-500/30 text-sky-200 text-xs rounded-xl px-4 py-3 leading-relaxed">
+                {pending.amount > 300
+                  ? 'ไอดีนี้เติมครั้งแรก ยอดเกิน 300 บาท: ร้านจะตรวจสอบก่อนส่งเหรียญ (ทักแชทเพจพร้อมรหัสออเดอร์เพื่อให้เร็วขึ้น)'
+                  : 'ไอดีนี้เติมครั้งแรก: หลังโอน จะมีรหัสยืนยันทาง SMS ไปที่เบอร์ทรูมันนี่ที่ใช้โอน กรอกในหน้านี้เพื่อรับเหรียญ'}
+                {' '}(ป้องกันมิจฉาชีพ ทำครั้งแรกครั้งเดียว) ครั้งต่อไปจากเบอร์เดิมได้รับเหรียญทันที
+              </div>
+            )}
             <a
               href={pending.url}
               target="_blank"
@@ -414,6 +706,12 @@ export default function App() {
             onDone={() => { savePending(null); setPending(null); setCustomAmount(''); }}
             onCancel={() => setPending(null)}
           />
+        ) : pending.method === 'promptpay_bank' ? (
+          <BankPromptPayCard
+            pending={pending}
+            onDone={() => { savePending(null); setPending(null); setCustomAmount(''); }}
+            onCancel={() => setPending(null)}
+          />
         ) : (
           <PaymentCard
             pending={pending}
@@ -487,6 +785,13 @@ export default function App() {
           <span className="text-xs bg-purple-600/30 text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full">
             ⚡ ระบบอัตโนมัติ 24 ชม.
           </span>
+        </div>
+
+        {/* เตือนโกงสามเส้า: เหยื่อที่ถูกส่งลิงก์ร้านมาให้จ่ายค่าของอย่างอื่น ต้องเห็นก่อนจ่าย */}
+        <div className="mb-5 bg-red-500/10 border border-red-500/40 rounded-xl px-4 py-3 text-xs text-red-200 leading-relaxed" role="note">
+          <span className="font-bold text-red-300">⚠️ ระวังมิจฉาชีพ</span> · ร้านขายเฉพาะ<b>เหรียญเกม</b> ·
+          ถ้ามีคนส่งลิงก์หรือ QR ของร้านนี้ให้คุณจ่ายเพื่อซื้อสินค้าอื่น หรือไอดีเกมไม่ใช่ของคุณเอง
+          <b> ห้ามจ่าย = มิจฉาชีพ</b>
         </div>
 
         <form onSubmit={handleCheckout} className="space-y-5">
@@ -668,7 +973,7 @@ export default function App() {
 
         <div className="mt-6 text-center text-xs text-gray-500 flex items-center justify-center gap-1">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          {method === 'truemoney' ? 'ระบบตรวจสอบยอดโอนกับ TrueMoney อัตโนมัติ' : 'ชำระเงินปลอดภัยผ่าน Stripe PromptPay'}
+          {method === 'truemoney' ? 'ระบบตรวจสอบยอดโอนกับ TrueMoney อัตโนมัติ' : 'ระบบตรวจสอบสลิปกับธนาคารอัตโนมัติ'}
         </div>
       </div>
     </div>
