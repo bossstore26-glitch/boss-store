@@ -286,6 +286,14 @@ async function slipToDataUrl(file) {
   }
 }
 
+// ปุ่มอัปโหลดสลิป: เด้ง + วงแสงกะพริบ (ใช้หลังสร้าง QR 1 นาที) ปิดเองถ้าเครื่องตั้ง "ลดการเคลื่อนไหว"
+const NUDGE_CSS = `
+@keyframes upload-nudge-bounce { 0%, 100% { transform: translateY(0) } 12% { transform: translateY(-6px) } 24% { transform: translateY(0) } 34% { transform: translateY(-3px) } 44% { transform: translateY(0) } }
+@keyframes upload-nudge-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, .75) } 50% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0) } }
+.upload-nudge { animation: upload-nudge-bounce 2s ease-in-out infinite, upload-nudge-glow 1.4s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .upload-nudge { animation: upload-nudge-glow 2s ease-out infinite; } }
+`;
+
 // พร้อมเพย์ธนาคารร้าน: สแกนจ่าย → อัปโหลดสลิป → บอทตรวจสลิปกับธนาคาร (Slip2Go) แล้วส่งเหรียญ
 function BankPromptPayCard({ pending, onDone, onCancel }) {
   const canvasRef = useRef(null);
@@ -303,6 +311,9 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   }, []);
   const secondsLeft = Math.max(0, Math.ceil((qrDeadline - now) / 1000));
   const qrExpired = secondsLeft === 0;
+  // สร้าง QR ไปแล้วเกิน 1 นาที → ปุ่มอัปโหลดกะพริบ/เด้ง ดึงสายตา (ลูกค้าบางคนโอนแล้วไม่รู้ว่าต้องอัปโหลดสลิป)
+  const qrCreatedMs = pending.qrExpiresAt ? (pending.qrExpiresAt - 10 * 60) * 1000 : 0;
+  const nudgeUpload = qrCreatedMs > 0 && now - qrCreatedMs > 60 * 1000;
 
   useEffect(() => {
     if (!qrExpired && canvasRef.current) drawQr(canvasRef.current, pending.qrData, qrLabel(pending.game, pending.gameId)).catch(console.error);
@@ -394,6 +405,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
 
   return (
     <div className="w-full max-w-md rounded-2xl overflow-hidden border border-indigo-500/30 shadow-2xl bg-[#161a2b]">
+      <style>{NUDGE_CSS}</style>
       <QrPreview src={preview} onClose={() => setPreview(null)} />
       {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} />}
       <div className="bg-gradient-to-br from-violet-500 to-indigo-600 px-6 py-5">
@@ -472,7 +484,9 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               type="button"
               disabled={checking || locked}
               onClick={() => fileRef.current?.click()}
-              className="mt-4 w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              className={`mt-4 w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 ${
+                nudgeUpload && !checking && !locked ? 'upload-nudge' : ''
+              }`}
             >
               {checking ? (
                 <>
@@ -877,6 +891,15 @@ export default function App() {
               <span className="text-pink-400 font-bold">{formatChips(chipsAmount, game)} เหรียญ</span> ·{' '}
               {method === 'truemoney' ? 'TrueMoney' : 'PromptPay'}
             </p>
+
+            {method !== 'truemoney' && (
+              <div className="mt-4 bg-emerald-500/10 border border-emerald-400/50 rounded-xl px-3 py-3 text-left">
+                <p className="text-sm font-bold text-emerald-300">📎 โอนแล้วต้องกลับมาหน้านี้เพื่ออัปโหลดสลิป</p>
+                <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                  ระบบจะส่งเหรียญหลังตรวจสลิปเท่านั้น ถ้าไม่อัปโหลดสลิป จะยังไม่ได้รับเหรียญ
+                </p>
+              </div>
+            )}
 
             <div className="mt-5 flex flex-col gap-2">
               <button
