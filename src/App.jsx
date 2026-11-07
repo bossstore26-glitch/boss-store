@@ -996,10 +996,9 @@ export default function App() {
         </div>
 
         {/* เตือนโกงสามเส้า: เหยื่อที่ถูกส่งลิงก์ร้านมาให้จ่ายค่าของอย่างอื่น ต้องเห็นก่อนจ่าย */}
-        <div className="mb-5 bg-red-500/10 border border-red-500/40 rounded-xl px-4 py-3 text-xs text-red-200 leading-relaxed" role="note">
-          <span className="font-bold text-red-300">⚠️ ระวังมิจฉาชีพ</span> · ร้านขายเฉพาะ<b>เหรียญเกม</b> ·
-          ถ้ามีคนส่งลิงก์หรือ QR ของร้านนี้ให้คุณจ่ายเพื่อซื้อสินค้าอื่น หรือไอดีเกมไม่ใช่ของคุณเอง
-          <b> ห้ามจ่าย = มิจฉาชีพ</b>
+        {/* ร้านขอ 8 พ.ย.: บรรทัดเดียวพอ ใจความ = ไอดีไม่ใช่ของตัวเอง อย่าจ่าย */}
+        <div className="mb-5 bg-red-500/10 border border-red-500/40 rounded-xl px-3 py-2.5 text-[clamp(11px,3.4vw,13px)] text-red-200 text-center" role="note">
+          ⚠️ <b className="text-red-300">ไอดีเกมไม่ใช่ของคุณ ห้ามจ่าย = มิจฉาชีพ</b>
         </div>
 
         <form onSubmit={handleCheckout} className="space-y-5">
