@@ -311,9 +311,27 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   }, []);
   const secondsLeft = Math.max(0, Math.ceil((qrDeadline - now) / 1000));
   const qrExpired = secondsLeft === 0;
-  // สร้าง QR ไปแล้วเกิน 1 นาที → ปุ่มอัปโหลดกะพริบ/เด้ง ดึงสายตา (ลูกค้าบางคนโอนแล้วไม่รู้ว่าต้องอัปโหลดสลิป)
+  // สร้าง QR ไปแล้วเกิน 10 วิ → ปุ่มอัปโหลดกะพริบ/เด้ง ดึงสายตา (ลูกค้าบางคนโอนแล้วไม่รู้ว่าต้องอัปโหลดสลิป)
   const qrCreatedMs = pending.qrExpiresAt ? (pending.qrExpiresAt - 10 * 60) * 1000 : 0;
-  const nudgeUpload = qrCreatedMs > 0 && now - qrCreatedMs > 60 * 1000;
+  const nudgeUpload = qrCreatedMs > 0 && now - qrCreatedMs > 10 * 1000;
+
+  // ลูกค้าสลับไปแอปธนาคารแล้วกลับมา (หน้าเว็บถูกซ่อน ≥ 5 วิ) → ป๊อปอัปกลางจอพร้อมปุ่มเลือกสลิป
+  const [returnPrompt, setReturnPrompt] = useState(false);
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  useEffect(() => {
+    let hiddenAt = 0;
+    const onVis = () => {
+      if (document.hidden) {
+        hiddenAt = Date.now();
+        return;
+      }
+      if (hiddenAt && Date.now() - hiddenAt >= 5000 && statusRef.current === 'idle') setReturnPrompt(true);
+      hiddenAt = 0;
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
 
   useEffect(() => {
     if (!qrExpired && canvasRef.current) drawQr(canvasRef.current, pending.qrData, qrLabel(pending.game, pending.gameId)).catch(console.error);
@@ -406,6 +424,35 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   return (
     <div className="w-full max-w-md rounded-2xl overflow-hidden border border-indigo-500/30 shadow-2xl bg-[#161a2b]">
       <style>{NUDGE_CSS}</style>
+      {returnPrompt && status === 'idle' && (
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-labelledby="return-title">
+          <div className="w-full max-w-sm bg-[#161a2b] border border-emerald-500/50 rounded-2xl p-6 shadow-2xl text-center">
+            <div className="text-5xl">📎</div>
+            <h2 id="return-title" className="mt-2 text-xl font-bold text-emerald-300">โอนเสร็จแล้วใช่ไหม?</h2>
+            <p className="mt-2 text-sm text-gray-200 leading-relaxed">
+              อัปโหลดสลิปเพื่อรับเหรียญ
+              <br />
+              <span className="text-pink-400 font-bold">{formatChips(pending.chips, pending.game)} เหรียญ</span> → ไอดี{' '}
+              <span className="text-yellow-300 font-bold">{pending.gameId}</span>
+            </p>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => { setReturnPrompt(false); fileRef.current?.click(); }}
+              className="mt-5 w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold py-3.5 rounded-xl upload-nudge"
+            >
+              📎 เลือกสลิปจากแอปธนาคาร
+            </button>
+            <button
+              type="button"
+              onClick={() => setReturnPrompt(false)}
+              className="mt-3 text-sm text-gray-400 underline underline-offset-4"
+            >
+              ยังไม่ได้โอน
+            </button>
+          </div>
+        </div>
+      )}
       <QrPreview src={preview} onClose={() => setPreview(null)} />
       {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} />}
       <div className="bg-gradient-to-br from-violet-500 to-indigo-600 px-6 py-5">
