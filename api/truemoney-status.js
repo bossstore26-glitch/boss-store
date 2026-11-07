@@ -14,7 +14,10 @@ export default async function handler(req, res) {
       signal: AbortSignal.timeout(8000),
     });
     const d = await r.json();
-    return res.status(200).json({ status: d.status === 'paid' ? 'paid' : 'waiting' });
+    // review = จ่ายแล้ว แต่ร้านกำลังตรวจก่อนส่ง (ไอดีใหม่ / เบอร์ไม่ตรง)
+    const status = d.status === 'paid' || d.status === 'review' ? d.status : 'waiting';
+    // otp = ไอดีใหม่ ร้านส่งรหัสยืนยันไปที่เบอร์ทรูมันนี่ที่โอน ให้ลูกค้ากรอกบนหน้านี้
+    return res.status(200).json({ status, otp: status === 'review' && !!d.otp, phone: d.phone || null });
   } catch {
     return res.status(200).json({ status: 'unknown' }); // บอทปิดอยู่ ไม่ใช่ความผิดลูกค้า
   }

@@ -47,6 +47,24 @@ export function methodClosedMessage(method) {
   return `ขออภัย ช่องทาง ${METHOD_NAMES[method]} ปิดปรับปรุงชั่วคราว กรุณาเลือกช่องทางอื่น`;
 }
 
+// ไอดีนี้ถูกบล็อก / ผูกเบอร์แล้วหรือยัง (กันโกงสามเส้า) ถามไม่ได้ → ถือว่ายังไม่ผูก ไม่บล็อก (บอทเช็กซ้ำตอนเงินเข้า)
+export async function idStatus(game, gameId) {
+  const bot = process.env.BOT_URL;
+  if (!bot) return { verified: false, blocked: false };
+  try {
+    const r = await fetch(`${bot.replace(/\/$/, '')}/shop/id-status?game=${encodeURIComponent(game)}&id=${encodeURIComponent(gameId)}`, {
+      headers: { 'ngrok-skip-browser-warning': '1' },
+      signal: AbortSignal.timeout(4000),
+    });
+    const d = await r.json();
+    return { verified: !!d.verified, blocked: !!d.blocked };
+  } catch {
+    return { verified: false, blocked: false };
+  }
+}
+
+export const BLOCKED_MESSAGE = 'ไอดีนี้ถูกระงับการเติม กรุณาติดต่อแอดมินเพจ BOSS STORE';
+
 // ตรวจก่อนสร้างรายการจ่ายเงิน คืน null ถ้าผ่าน หรือ { status, body } ถ้าปิดอยู่
 export async function checkOpen(game, gameName, method) {
   const s = await shopStatus();
