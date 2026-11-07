@@ -58,6 +58,80 @@ async function drawQr(canvas, data, label) {
   });
 }
 
+// บันทึก QR: คอม = ดาวน์โหลดไฟล์, มือถือ = เมนูแชร์ของเครื่อง (มี "บันทึกรูปภาพ")
+// เบราว์เซอร์ในแอป (Messenger/Facebook/LINE) ไม่รองรับทั้งสองแบบ → โชว์รูปใหญ่ให้กดค้างบันทึก
+async function saveQrImage(canvas, filename, showPreview) {
+  const dataUrl = canvas.toDataURL('image/png');
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (!mobile) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+    return;
+  }
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], filename, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file] });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return; // ลูกค้ากดปิดเมนูแชร์เอง
+  }
+  showPreview(dataUrl);
+}
+
+function QrPreview({ src, onClose }) {
+  if (!src) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-center px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="บันทึกรูป QR"
+      onClick={onClose}
+    >
+      <img src={src} alt="QR พร้อมเพย์ BOSS STORE" className="w-72 h-72 bg-white rounded-2xl p-2" onClick={(e) => e.stopPropagation()} />
+      <p className="mt-4 text-white text-center font-bold">กดค้างที่รูป แล้วเลือก "บันทึกรูปภาพ"</p>
+      <p className="mt-1 text-gray-300 text-xs text-center leading-relaxed">
+        ถ้ากดค้างแล้วไม่มีเมนู ให้แคปหน้าจอแทน
+        <br />หรือกด ⋯ มุมขวาบน แล้วเลือกเปิดใน Safari / Chrome
+      </p>
+      <button type="button" onClick={onClose} className="mt-5 text-indigo-300 underline underline-offset-4">
+        ปิด
+      </button>
+    </div>
+  );
+}
+
+// ป๊อปอัปเมื่อบอทส่งเหรียญเข้าไอดีเสร็จจริง กด "ตกลง" กลับหน้าแรก
+function DeliveredPopup({ pending, onOk }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-labelledby="delivered-title">
+      <div className="w-full max-w-sm bg-[#161a2b] border border-emerald-500/50 rounded-2xl p-6 shadow-2xl text-center">
+        <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto" />
+        <h2 id="delivered-title" className="mt-3 text-xl font-bold text-emerald-300">ส่งเหรียญเสร็จแล้ว</h2>
+        <p className="mt-3 text-sm text-gray-200 leading-relaxed">
+          <span className="text-pink-400 font-bold">{formatChips(pending.chips, pending.game)} เหรียญ</span>
+          <br />
+          เข้า {gameOf(pending.game).name} ไอดี <span className="text-yellow-300 font-bold">{pending.gameId}</span> แล้ว
+        </p>
+        <p className="mt-2 text-xs text-gray-400">เข้าเกมตรวจกล่องของขวัญได้เลย ขอบคุณที่ใช้บริการ BOSS STORE</p>
+        <button
+          type="button"
+          autoFocus
+          onClick={onOk}
+          className="mt-5 w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold py-3 rounded-xl"
+        >
+          ตกลง
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PaymentCard({ pending, onDone, onCancel }) {
   const canvasRef = useRef(null);
   const [status, setStatus] = useState('requires_action');
@@ -234,14 +308,15 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         const r = await fetch(`/api/truemoney-status?code=${encodeURIComponent(pending.id)}`);
         const d = await r.json();
         if (stopped) return;
-        if (d.status === 'paid') {
-          setStatus('paid');
+        if (d.status === 'delivered') {
+          setStatus('delivered');
           savePending(null);
           return;
         }
+        if (d.status === 'paid') setStatus('paid'); // ถามต่อจนบอทส่งเหรียญเสร็จ
         if (d.status === 'review') setStatus((s) => (s === 'checking' ? s : 'review'));
       } catch {}
-      if (!stopped) timer = setTimeout(tick, 5000);
+      if (!stopped) timer = setTimeout(tick, 4000);
     };
     timer = setTimeout(tick, 1000);
     return () => { stopped = true; clearTimeout(timer); };
@@ -263,7 +338,6 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
       if (d.status === 'paid') {
         setStatus('paid');
         setMsgBad(false);
-        savePending(null);
       } else if (d.status === 'review') {
         setStatus('review');
         setMsgBad(false);
@@ -279,12 +353,11 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
     if (fileRef.current) fileRef.current.value = '';
   };
 
-  const saveQr = () => {
-    const a = document.createElement('a');
-    a.href = canvasRef.current.toDataURL('image/png');
-    a.download = `BOSS-STORE-QR-${pending.amount}บาท.png`;
-    a.click();
-  };
+  const [preview, setPreview] = useState(null);
+  const saveQr = () =>
+    saveQrImage(canvasRef.current, `BOSS-STORE-QR-${pending.amount}baht.png`, setPreview).catch(() =>
+      setPreview(canvasRef.current.toDataURL('image/png')),
+    );
 
   const cancel = () => {
     if (!window.confirm('ถ้าโอนเงินไปแล้ว ห้ามยกเลิก ให้กด "อัปโหลดสลิป" แทน\n\nยังไม่ได้โอน และต้องการยกเลิกรายการนี้?')) return;
@@ -292,13 +365,15 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
     onCancel();
   };
 
-  const paid = status === 'paid';
+  const paid = status === 'paid' || status === 'delivered';
   const review = status === 'review';
   const checking = status === 'checking';
   const locked = status === 'locked';
 
   return (
     <div className="w-full max-w-md rounded-2xl overflow-hidden border border-indigo-500/30 shadow-2xl bg-[#161a2b]">
+      <QrPreview src={preview} onClose={() => setPreview(null)} />
+      {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} />}
       <div className="bg-gradient-to-br from-violet-500 to-indigo-600 px-6 py-5">
         <h1 className="text-2xl font-bold">เติมเหรียญผ่านพร้อมเพย์</h1>
         <p className="text-sm text-indigo-100 mt-1">สแกนจ่ายด้วยแอปธนาคาร แล้วอัปโหลดสลิป</p>
@@ -414,7 +489,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
       });
       const d = await r.json();
       setOtpMsg(d.message || '');
-      if (d.status === 'ok' && action === 'verify') { setStatus('paid'); savePending(null); }
+      if (d.status === 'ok' && action === 'verify') setStatus('paid');
       if (action === 'resend' && d.status === 'ok') setOtp('');
     } catch {
       setOtpMsg('เชื่อมต่อไม่ได้ กรุณาลองใหม่');
@@ -436,12 +511,13 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
         const r = await fetch(`/api/truemoney-status?code=${encodeURIComponent(pending.id)}`);
         const d = await r.json();
         if (stopped) return;
-        if (d.status === 'paid') {
-          setStatus('paid');
+        if (d.status === 'delivered') {
+          setStatus('delivered');
           savePending(null);
           return;
         }
-        if (d.status === 'review') { // จ่ายแล้ว รอยืนยัน → ถามต่อจนส่งจริง
+        if (d.status === 'paid') setStatus('paid'); // ถามต่อจนบอทส่งเหรียญเสร็จ
+        else if (d.status === 'review') { // จ่ายแล้ว รอยืนยัน → ถามต่อจนส่งจริง
           setStatus('review');
           setOtpInfo(d.otp ? { phone: d.phone } : null);
         }
@@ -452,11 +528,12 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
     return () => { stopped = true; clearTimeout(timer); };
   }, [pending.id]);
 
-  const paid = status === 'paid';
+  const paid = status === 'paid' || status === 'delivered';
   const review = status === 'review';
 
   return (
     <div className="w-full max-w-md rounded-2xl overflow-hidden border border-orange-500/30 shadow-2xl bg-[#161a2b]">
+      {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} />}
       <div className="bg-gradient-to-br from-orange-500 to-amber-500 px-6 py-5">
         <h1 className="text-2xl font-bold">เติมเหรียญผ่าน TrueMoney</h1>
         <p className="text-sm text-orange-50 mt-1">กดปุ่มเปิดแอปทรูมันนี่ ยอดและข้อความกรอกไว้ให้แล้ว</p>
