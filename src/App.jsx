@@ -294,10 +294,19 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   const [status, setStatus] = useState('idle');
   const [msg, setMsg] = useState('');
   const [msgBad, setMsgBad] = useState(false);
+  // QR ใช้ได้ 10 นาที (กันเซฟ QR ไว้ให้คนอื่นจ่ายทีหลัง) หมดแล้วยังอัปโหลดสลิปได้ถ้าโอนไปแล้ว
+  const qrDeadline = (pending.qrExpiresAt || pending.expiresAt) * 1000;
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const secondsLeft = Math.max(0, Math.ceil((qrDeadline - now) / 1000));
+  const qrExpired = secondsLeft === 0;
 
   useEffect(() => {
-    if (canvasRef.current) drawQr(canvasRef.current, pending.qrData, qrLabel(pending.game, pending.gameId)).catch(console.error);
-  }, [pending.qrData, pending.game, pending.gameId]);
+    if (!qrExpired && canvasRef.current) drawQr(canvasRef.current, pending.qrData, qrLabel(pending.game, pending.gameId)).catch(console.error);
+  }, [pending.qrData, pending.game, pending.gameId, qrExpired]);
 
   // อัปโหลดแล้วอยู่ระหว่างร้านตรวจ (หรือกลับมาเปิดหน้าใหม่) → ถามสถานะจนส่งเหรียญ
   useEffect(() => {
@@ -391,9 +400,27 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         </p>
         <p className="text-xs text-pink-400 mt-1">{formatChips(pending.chips, pending.game)} เหรียญ</p>
 
-        {!paid && !review && (
-          <div className="mt-4 bg-white rounded-2xl p-3">
-            <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
+        {!paid && !review && !qrExpired && (
+          <>
+            <div className="mt-4 bg-white rounded-2xl p-3">
+              <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
+            </div>
+            <p className={`mt-2 text-sm font-semibold ${secondsLeft <= 60 ? 'text-red-400' : 'text-amber-300'}`}>
+              QR หมดอายุใน {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')} นาที
+            </p>
+          </>
+        )}
+        {!paid && !review && qrExpired && (
+          <div className="mt-4 w-full bg-[#22273a] border border-red-500/40 rounded-xl px-4 py-4 text-center">
+            <p className="text-red-300 font-bold">QR หมดอายุแล้ว (ใช้ได้ 10 นาที)</p>
+            <p className="text-xs text-gray-300 mt-1 leading-relaxed">ยังไม่ได้โอน → กดสร้าง QR ใหม่ · โอนไปแล้ว → อัปโหลดสลิปด้านล่าง</p>
+            <button
+              type="button"
+              onClick={() => { savePending(null); onCancel(); }}
+              className="mt-3 w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 rounded-xl"
+            >
+              สร้าง QR ใหม่
+            </button>
           </div>
         )}
 
@@ -406,14 +433,14 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           <div className="mt-5 w-full bg-amber-500/10 border border-amber-500/40 text-amber-200 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
             <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
             <span>
-              ได้รับเงินแล้ว ✅ ร้านกำลังตรวจสอบไอดีก่อนส่งเหรียญ (ลูกค้าใหม่ตรวจครั้งแรกครั้งเดียว ครั้งต่อไปได้ทันที)
+              {msg && !msgBad ? msg : 'ได้รับเงินแล้ว ✅ ร้านกำลังตรวจสอบไอดีก่อนส่งเหรียญ (ลูกค้าใหม่ตรวจครั้งแรกครั้งเดียว ครั้งต่อไปได้ทันที)'}
               <br />ไม่ต้องอัปโหลดซ้ำ หน้านี้จะเปลี่ยนเองเมื่อส่งเหรียญ
             </span>
           </div>
         ) : (
           <>
             <ol className="mt-5 w-full text-sm text-gray-200 space-y-1 list-decimal list-inside">
-              <li>สแกน QR หรือบันทึก QR ไปเปิดในแอปธนาคาร</li>
+              <li>สแกน QR หรือบันทึก QR ไปเปิดในแอปธนาคาร (ภายใน 10 นาที)</li>
               <li>โอนยอด <span className="font-bold">{pending.amount.toLocaleString()} บาท</span> ตรงตามนี้</li>
               <li>กดปุ่มด้านล่าง เลือกภาพสลิปจากแอปธนาคาร</li>
             </ol>
@@ -455,9 +482,11 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
             </button>
           ) : review ? null : (
             <>
-              <button onClick={saveQr} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
-                บันทึก QR
-              </button>
+              {!qrExpired && (
+                <button onClick={saveQr} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
+                  บันทึก QR
+                </button>
+              )}
               <button onClick={cancel} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
                 ยกเลิก / แก้ไขยอด
               </button>
