@@ -324,6 +324,14 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         }
         if (d.status === 'paid') setStatus('paid'); // ถามต่อจนบอทส่งเหรียญเสร็จ
         if (d.status === 'review') setStatus((s) => (s === 'checking' ? s : 'review'));
+        // บอทกำลังรอธนาคารยืนยันสลิป (ตรวจซ้ำเองทุกไม่กี่นาที)
+        if (d.status === 'checking') setStatus((s) => (s === 'checking' ? s : 'bankwait'));
+        // บอทตรวจซ้ำเองแล้วไม่ผ่าน → ให้อัปโหลดใหม่/ทักเพจ
+        if (d.status === 'failed') {
+          setStatus((s) => (s === 'bankwait' ? 'idle' : s));
+          setMsg(d.message || 'ตรวจสลิปไม่ผ่าน กรุณาทักแชทเพจ BOSS STORE พร้อมสลิป');
+          setMsgBad(true);
+        }
       } catch {}
       if (!stopped) timer = setTimeout(tick, 4000);
     };
@@ -350,14 +358,18 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
       } else if (d.status === 'review') {
         setStatus('review');
         setMsgBad(false);
+      } else if (d.status === 'waiting') {
+        setStatus('bankwait');
+        setMsgBad(false);
       } else {
         setStatus(d.status === 'locked' ? 'locked' : 'idle');
         setMsgBad(true);
       }
     } catch {
+      // อาจส่งถึงร้านแล้วแต่รอผลนานเกิน → หน้านี้ถามสถานะต่อเอง (เปลี่ยนเป็นรอธนาคาร/สำเร็จได้)
       setStatus('idle');
       setMsgBad(true);
-      setMsg('อ่านไฟล์หรือเชื่อมต่อไม่ได้ กรุณาเลือกภาพสลิปใหม่อีกครั้ง');
+      setMsg('ยังไม่ได้รับผลตรวจ รอสักครู่ หน้านี้จะอัปเดตเอง ถ้าผ่านไป 1 นาทีแล้วไม่เปลี่ยน ให้อัปโหลดสลิปใหม่');
     }
     if (fileRef.current) fileRef.current.value = '';
   };
@@ -375,7 +387,8 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   };
 
   const paid = status === 'paid' || status === 'delivered';
-  const review = status === 'review';
+  const bankwait = status === 'bankwait';
+  const review = status === 'review' || bankwait; // ซ่อน QR/ปุ่มอัปโหลดเหมือนกัน
   const checking = status === 'checking';
   const locked = status === 'locked';
 
@@ -433,7 +446,11 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           <div className="mt-5 w-full bg-amber-500/10 border border-amber-500/40 text-amber-200 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
             <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
             <span>
-              {msg && !msgBad ? msg : 'ได้รับเงินแล้ว ✅ ร้านกำลังตรวจสอบไอดีก่อนส่งเหรียญ (ลูกค้าใหม่ตรวจครั้งแรกครั้งเดียว ครั้งต่อไปได้ทันที)'}
+              {bankwait
+                ? 'ได้รับสลิปแล้ว ⏳ กำลังรอธนาคารยืนยันรายการ (ปกติ 1–10 นาที)'
+                : msg && !msgBad
+                  ? msg
+                  : 'ได้รับเงินแล้ว ✅ ร้านกำลังตรวจสอบไอดีก่อนส่งเหรียญ (ลูกค้าใหม่ตรวจครั้งแรกครั้งเดียว ครั้งต่อไปได้ทันที)'}
               <br />ไม่ต้องอัปโหลดซ้ำ หน้านี้จะเปลี่ยนเองเมื่อส่งเหรียญ
             </span>
           </div>
