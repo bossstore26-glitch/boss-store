@@ -15,7 +15,8 @@ export default async function handler(req, res) {
     });
     const d = await r.json();
     // review = จ่ายแล้ว แต่ร้านกำลังตรวจก่อนส่ง (ไอดีใหม่ / เบอร์ไม่ตรง)
-    const status = d.status === 'paid' || d.status === 'review' ? d.status : 'waiting';
+    // delivered = บอทส่งเหรียญเข้าไอดีเสร็จแล้ว (หน้าเว็บขึ้นป๊อปอัป)
+    const status = ['paid', 'review', 'delivered'].includes(d.status) ? d.status : 'waiting';
     // otp = ไอดีใหม่ ร้านส่งรหัสยืนยันไปที่เบอร์ทรูมันนี่ที่โอน ให้ลูกค้ากรอกบนหน้านี้
     return res.status(200).json({ status, otp: status === 'review' && !!d.otp, phone: d.phone || null });
   } catch {
