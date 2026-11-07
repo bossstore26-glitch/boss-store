@@ -106,6 +106,18 @@ function QrPreview({ src, onClose }) {
   );
 }
 
+// รหัสรายการ 6 ตัว (ร้านใช้จับคู่กับข้อความ "รอตรวจ" ใน Telegram เวลาลูกค้าทักแชทเพจ)
+// รายการเก่าแบบ Stripe (pi_...) ไม่มีรหัสนี้ → ไม่แสดง
+function OrderCode({ id }) {
+  if (!/^[A-Z0-9]{6}$/.test(String(id || ''))) return null;
+  return (
+    <p className="mt-2 text-sm text-gray-300 text-center">
+      รหัสรายการ <span className="font-bold text-white tracking-wider select-all">#{id}</span>
+      <span className="block text-xs text-gray-400">แจ้งรหัสนี้เมื่อทักแชทเพจ BOSS STORE</span>
+    </p>
+  );
+}
+
 // ป๊อปอัปเมื่อบอทส่งเหรียญเข้าไอดีเสร็จจริง กด "ตกลง" กลับหน้าแรก
 function DeliveredPopup({ pending, onOk }) {
   return (
@@ -207,6 +219,7 @@ function PaymentCard({ pending, onDone, onCancel }) {
           เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
           <span className="text-yellow-400 font-bold">{pending.gameId}</span>
         </div>
+        <OrderCode id={pending.id} />
 
         <p className="mt-5 text-sm text-gray-300">ยอดชำระ</p>
         <p className="text-3xl font-bold mt-1">
@@ -465,6 +478,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
           <span className="text-yellow-400 font-bold">{pending.gameId}</span>
         </div>
+        <OrderCode id={pending.id} />
 
         <p className="mt-5 text-sm text-gray-300">ยอดโอน (ต้องตรงตามนี้)</p>
         <p className="text-3xl font-bold mt-1">
@@ -651,6 +665,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
           เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
           <span className="text-yellow-400 font-bold">{pending.gameId}</span>
         </div>
+        <OrderCode id={pending.id} />
 
         <p className="mt-5 text-sm text-gray-300">ยอดโอน</p>
         <p className="text-3xl font-bold mt-1">
