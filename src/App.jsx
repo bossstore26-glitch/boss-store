@@ -113,7 +113,7 @@ function OrderCode({ id }) {
   return (
     <p className="mt-2 text-sm text-gray-300 text-center">
       รหัสรายการ <span className="font-bold text-white tracking-wider select-all">#{id}</span>
-      <span className="block text-xs text-gray-400">แจ้งรหัสนี้เมื่อทักแชทเพจ BOSS STORE</span>
+      <span className="block text-xs text-gray-400">แจ้งรหัสนี้ที่เพจ BOSS STORE เมื่อเติมช้ากว่า 3 นาที</span>
     </p>
   );
 }
