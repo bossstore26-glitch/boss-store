@@ -21,7 +21,8 @@ export default async function handler(req, res) {
     const r = await fetch(`${bot.replace(/\/$/, '')}/shop/pp/slip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
-      body: JSON.stringify({ code, image }),
+      // IP ลูกค้า ให้บอทจำกัดจำนวนครั้ง/บล็อกคนอัปโหลดมั่ว (กันเผาโทเคน Slip2Go)
+      body: JSON.stringify({ code, image, ip: String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() }),
       signal: AbortSignal.timeout(45000),
     });
     const d = await r.json();
