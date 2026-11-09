@@ -108,8 +108,25 @@ function QrPreview({ src, onClose }) {
 
 // รหัสรายการ 6 ตัว (ร้านใช้จับคู่กับข้อความ "รอตรวจ" ใน Telegram เวลาลูกค้าทักแชทเพจ)
 // รายการเก่าแบบ Stripe (pi_...) ไม่มีรหัสนี้ → ไม่แสดง
-function OrderCode({ id }) {
+// ร้านขอ 9 พ.ย.: ให้เห็นรหัสหลังจ่าย/อัปสลิปแล้วเท่านั้น (ทักเพจมาพร้อมรหัส = จ่ายแล้ว)
+// fallbackAt = เวลา(ms)ที่จะโผล่ปุ่ม "โอนแล้วแต่ยังไม่ขึ้น?" กันกรณีระบบแจ้งเงินเข้าช้า/หลุด
+function OrderCode({ id, visible, fallbackAt = 0 }) {
+  const [revealed, setRevealed] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (visible || revealed || !fallbackAt) return undefined;
+    const t = setInterval(() => setNow(Date.now()), 2000);
+    return () => clearInterval(t);
+  }, [visible, revealed, fallbackAt]);
   if (!/^[A-Z0-9]{6}$/.test(String(id || ''))) return null;
+  if (!visible && !revealed) {
+    if (!fallbackAt || now < fallbackAt) return null;
+    return (
+      <button type="button" onClick={() => setRevealed(true)} className="mt-2 text-xs text-gray-400 underline underline-offset-4">
+        โอนแล้วแต่ยังไม่ขึ้น? ดูรหัสรายการ
+      </button>
+    );
+  }
   return (
     <p className="mt-2 text-sm text-gray-300 text-center">
       รหัสรายการ <span className="font-bold text-white tracking-wider select-all">#{id}</span>
@@ -478,7 +495,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
           <span className="text-yellow-400 font-bold">{pending.gameId}</span>
         </div>
-        <OrderCode id={pending.id} />
+        <OrderCode id={pending.id} visible={status !== 'idle' || !!msg} />
 
         <p className="mt-5 text-sm text-gray-300">ยอดโอน (ต้องตรงตามนี้)</p>
         <p className="text-3xl font-bold mt-1">
@@ -665,7 +682,11 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
           เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
           <span className="text-yellow-400 font-bold">{pending.gameId}</span>
         </div>
-        <OrderCode id={pending.id} />
+        <OrderCode
+          id={pending.id}
+          visible={status !== 'waiting'}
+          fallbackAt={pending.expiresAt ? (pending.expiresAt - 30 * 60 + 3 * 60) * 1000 : 0}
+        />
 
         <p className="mt-5 text-sm text-gray-300">ยอดโอน</p>
         <p className="text-3xl font-bold mt-1">
@@ -746,8 +767,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
               <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
             </div>
             <div className="mt-4 w-full bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs rounded-xl px-4 py-3 leading-relaxed">
-              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b> (เติมเกม{gameOf(pending.game).tmnWord} เพจBOSS STORE ID {pending.gameId} #{pending.id})
-              ในหน้าโอน ไม่งั้นระบบส่งเหรียญอัตโนมัติไม่ได้
+              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b>ที่กรอกไว้ให้ในหน้าโอน ไม่งั้นระบบส่งเหรียญอัตโนมัติไม่ได้
             </div>
             <p className="mt-5 text-sm text-gray-200 flex items-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin text-orange-400" />
@@ -772,7 +792,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
         </div>
         {!paid && (
           <p className="mt-3 text-xs text-gray-500 text-center">
-            ถ้าโอนแล้วแต่ไม่ขึ้นภายใน 5 นาที ทักแอดมินพร้อมรหัส #{pending.id}
+            ถ้าโอนแล้วแต่ไม่ขึ้นภายใน 3 นาที กด "ดูรหัสรายการ" ด้านบน แล้วทักแชทเพจ
           </p>
         )}
       </div>
