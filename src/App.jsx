@@ -856,6 +856,8 @@ export default function App() {
   const gameOpen = !!openGames[game];
   const methodOpen = !!openMethods[method];
   const gameInfo = GAMES[game];
+  // 9 พ.ย.: ลูกค้าเลือก Siam แต่ใส่ไอดี Royal (8 หลัก) → จ่ายแล้วส่งไม่ได้ ไอดี Siam ที่ขายมาทั้งหมดมี 7 หลัก
+  const wrongGameHint = game === 'siam' && gameId.length >= 8;
   const MIN_BAHT = minBaht(game);
   const PACKAGES = gameInfo.packages;
   const baht = Number(customAmount);
@@ -967,6 +969,15 @@ export default function App() {
               <p className="text-xs text-gray-400">ไอดีผู้เล่น</p>
               <p className="text-3xl font-bold tracking-wider text-yellow-300 mt-1">{gameId}</p>
             </div>
+            {wrongGameHint && (
+              <div className="mt-3 bg-red-500/15 border border-red-500/50 rounded-xl px-3 py-2.5 text-left">
+                <p className="text-sm font-bold text-red-300">⚠️ เลือกเกม Siam แต่ไอดีมี {gameId.length} หลัก</p>
+                <p className="text-xs text-red-200 mt-1 leading-relaxed">
+                  ไอดี Siam ปกติมี 7 หลัก ไอดีนี้น่าจะเป็นของ <b>Royal</b> ถ้าจ่ายผิดเกม ระบบส่งเหรียญไม่ได้
+                  กด "แก้ไขไอดี" แล้วเลือกเกมให้ถูก
+                </p>
+              </div>
+            )}
             <p className="mt-3 text-sm text-gray-300">
               เกม <span className="font-bold text-yellow-300">{gameInfo.name}</span> ·{' '}
               ยอด <span className="font-bold text-white">{baht.toLocaleString()} บาท</span> ·{' '}
@@ -1068,6 +1079,11 @@ export default function App() {
               className="w-full bg-[#1a243f] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition"
               required
             />
+            {wrongGameHint && (
+              <p className="mt-2 text-xs text-amber-300 leading-relaxed">
+                ⚠️ ไอดี Siam ปกติมี 7 หลัก ไอดีนี้มี {gameId.length} หลัก อาจเป็นไอดี <b>Royal</b> ตรวจสอบเกมที่เลือกอีกครั้ง
+              </p>
+            )}
           </div>
 
           {/* ช่องกรอกจำนวนเงินเอง */}
