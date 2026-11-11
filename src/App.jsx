@@ -813,6 +813,8 @@ export default function App() {
   const [pending, setPending] = useState(loadPending);
   const [showPackages, setShowPackages] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  // 12 พ.ย.: ค้นไอดีในเกมก่อนจ่าย ให้ลูกค้าเห็นตัวละคร (กันกรอกไอดีผิด) { status: checking|found|not_found|skip, image }
+  const [playerCheck, setPlayerCheck] = useState({ status: 'skip' });
   const [game, setGame] = useState('royal');
   // เกมที่ร้านเปิดรับ (ปิดชั่วคราวได้จากแผงควบคุมที่คอมร้าน) ถามทุก 60 วิ
   const [openGames, setOpenGames] = useState(() => Object.fromEntries(GAME_KEYS.map((k) => [k, true])));
@@ -862,6 +864,29 @@ export default function App() {
   const PACKAGES = gameInfo.packages;
   const baht = Number(customAmount);
   const chipsAmount = chipsFor(baht, game);
+
+  // เปิดป๊อปอัปยืนยัน → ค้นไอดีในเกม (เฉพาะ Royal) ถามไม่ได้/ช้า → skip = ไปต่อได้เหมือนเดิม
+  useEffect(() => {
+    if (!confirming || game !== 'royal') {
+      setPlayerCheck({ status: 'skip' });
+      return undefined;
+    }
+    let alive = true;
+    setPlayerCheck({ status: 'checking' });
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45000);
+    fetch(`/api/check-id?game=${game}&id=${encodeURIComponent(gameId)}`, { signal: ctrl.signal })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive) return;
+        if (d.status === 'found' && d.image) setPlayerCheck({ status: 'found', image: d.image });
+        else if (d.status === 'not_found') setPlayerCheck({ status: 'not_found' });
+        else setPlayerCheck({ status: 'skip' });
+      })
+      .catch(() => alive && setPlayerCheck({ status: 'skip' }))
+      .finally(() => clearTimeout(timer));
+    return () => { alive = false; clearTimeout(timer); ctrl.abort(); };
+  }, [confirming, game, gameId]);
 
   // กดชำระ → ตรวจข้อมูล → ป๊อปอัปให้ลูกค้ายืนยันไอดีก่อน
   const handleCheckout = (e) => {
@@ -969,6 +994,27 @@ export default function App() {
               <p className="text-xs text-gray-400">ไอดีผู้เล่น</p>
               <p className="text-3xl font-bold tracking-wider text-yellow-300 mt-1">{gameId}</p>
             </div>
+            {playerCheck.status === 'checking' && (
+              <div className="mt-3 bg-[#22273a] rounded-xl px-3 py-3 text-sm text-gray-300" role="status">
+                <span className="inline-block animate-spin mr-2">⏳</span>
+                กำลังค้นหาไอดีนี้ในเกม (ไม่เกิน 20 วินาที)...
+              </div>
+            )}
+            {playerCheck.status === 'found' && (
+              <div className="mt-3 bg-emerald-500/10 border border-emerald-400/60 rounded-xl px-3 py-3">
+                <p className="text-sm font-bold text-emerald-300">✅ เจอไอดีนี้ในเกม — ใช่ตัวละครของคุณไหม?</p>
+                <img src={playerCheck.image} alt={`ตัวละครในเกม ไอดี ${gameId}`} className="mt-2 mx-auto w-full max-w-[300px] rounded-lg" />
+                <p className="text-xs text-gray-300 mt-2">ถ้าไม่ใช่ชื่อตัวละครของคุณ กด "แก้ไขไอดี"</p>
+              </div>
+            )}
+            {playerCheck.status === 'not_found' && (
+              <div className="mt-3 bg-red-500/15 border border-red-500/60 rounded-xl px-3 py-3 text-left">
+                <p className="text-sm font-bold text-red-300">❌ ไม่พบไอดี {gameId} ในเกม {gameInfo.name}</p>
+                <p className="text-xs text-red-200 mt-1 leading-relaxed">
+                  ตัวเลขอาจขาด เกิน หรือสลับกัน กด "แก้ไขไอดี" แล้วคัดลอกไอดีจากหน้าโปรไฟล์ในเกมมาวางอีกครั้ง
+                </p>
+              </div>
+            )}
             {wrongGameHint && (
               <div className="mt-3 bg-red-500/15 border border-red-500/50 rounded-xl px-3 py-2.5 text-left">
                 <p className="text-sm font-bold text-red-300">⚠️ เลือกเกม Siam แต่ไอดีมี {gameId.length} หลัก</p>
@@ -995,21 +1041,45 @@ export default function App() {
             )}
 
             <div className="mt-5 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={createPayment}
-                autoFocus
-                className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold py-3 rounded-xl transition"
-              >
-                ไอดีถูกต้อง ดำเนินการต่อ
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                className="w-full bg-[#1a243f] border border-gray-700 hover:border-gray-500 text-gray-200 py-3 rounded-xl transition"
-              >
-                แก้ไขไอดี
-              </button>
+              {playerCheck.status === 'not_found' ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirming(false)}
+                  autoFocus
+                  className="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white font-bold py-3 rounded-xl transition"
+                >
+                  แก้ไขไอดี
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={createPayment}
+                    disabled={playerCheck.status === 'checking'}
+                    autoFocus
+                    className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 disabled:opacity-50 disabled:cursor-wait text-white font-bold py-3 rounded-xl transition"
+                  >
+                    {playerCheck.status === 'checking' ? 'กำลังค้นหาไอดี...'
+                      : playerCheck.status === 'found' ? 'ใช่ ตัวละครนี้ ดำเนินการต่อ' : 'ไอดีถูกต้อง ดำเนินการต่อ'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(false)}
+                    className="w-full bg-[#1a243f] border border-gray-700 hover:border-gray-500 text-gray-200 py-3 rounded-xl transition"
+                  >
+                    แก้ไขไอดี
+                  </button>
+                </>
+              )}
+              {playerCheck.status === 'not_found' && (
+                <button
+                  type="button"
+                  onClick={createPayment}
+                  className="mt-1 text-xs text-gray-400 underline underline-offset-4 hover:text-gray-200"
+                >
+                  ฉันมั่นใจว่าไอดีถูกต้อง ดำเนินการต่อ
+                </button>
+              )}
             </div>
           </div>
         </div>
