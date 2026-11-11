@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   const game = String(req.query?.game ?? 'royal').toLowerCase();
   const id = String(req.query?.id ?? '').replace(/\D/g, '');
   if (!/^\d{4,12}$/.test(id)) return res.status(200).json({ status: 'not_found' });
-  if (game !== 'royal') return res.status(200).json({ status: 'unsupported' });
+  if (game !== 'royal' && game !== 'siam') return res.status(200).json({ status: 'unsupported' });
   const bot = process.env.BOT_URL;
   if (!bot) return res.status(200).json({ status: 'unknown' });
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
