@@ -865,7 +865,32 @@ export default function App() {
   const baht = Number(customAmount);
   const chipsAmount = chipsFor(baht, game);
 
-  // เปิดป๊อปอัปยืนยัน → ค้นไอดีในเกม (เฉพาะ Royal) ถามไม่ได้/ช้า → skip = ไปต่อได้เหมือนเดิม
+  // ค้นไอดีในเกม (Royal) ใช้ร่วมกันระหว่าง "ค้นล่วงหน้า" กับป๊อปอัปยืนยัน: ไอดีเดียวกันค้นครั้งเดียว
+  const lookups = useRef(new Map());
+  const lookupPlayer = (g, id) => {
+    const key = `${g}:${id}`;
+    if (!lookups.current.has(key)) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 45000);
+      const p = fetch(`/api/check-id?game=${g}&id=${encodeURIComponent(id)}`, { signal: ctrl.signal })
+        .then((r) => r.json())
+        .catch(() => ({ status: 'unknown' }))
+        .finally(() => clearTimeout(timer));
+      lookups.current.set(key, p);
+      // ผลไม่แน่นอน (ร้านไม่ว่าง/ถามไม่ได้) → ไม่จำ ให้ลองใหม่ได้
+      p.then((d) => { if (!['found', 'not_found'].includes(d.status)) lookups.current.delete(key); });
+    }
+    return lookups.current.get(key);
+  };
+
+  // 12 พ.ย. ค้นล่วงหน้า: ลูกค้าหยุดพิมพ์ไอดี ~1 วิ → เริ่มค้นเลย (ระหว่างกรอกยอดเงิน) กด "สร้าง QR" แล้วชื่อขึ้นทันที
+  useEffect(() => {
+    if (game !== 'royal' || !/^\d{6,12}$/.test(gameId)) return undefined;
+    const t = setTimeout(() => lookupPlayer(game, gameId), 1000);
+    return () => clearTimeout(t);
+  }, [game, gameId]);
+
+  // เปิดป๊อปอัปยืนยัน → ใช้ผลค้น (ที่ค้นล่วงหน้าไว้/กำลังค้นอยู่) ถามไม่ได้/ช้า → skip = ไปต่อได้เหมือนเดิม
   useEffect(() => {
     if (!confirming || game !== 'royal') {
       setPlayerCheck({ status: 'skip' });
@@ -873,19 +898,13 @@ export default function App() {
     }
     let alive = true;
     setPlayerCheck({ status: 'checking' });
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 45000);
-    fetch(`/api/check-id?game=${game}&id=${encodeURIComponent(gameId)}`, { signal: ctrl.signal })
-      .then((r) => r.json())
-      .then((d) => {
-        if (!alive) return;
-        if (d.status === 'found' && d.image) setPlayerCheck({ status: 'found', image: d.image });
-        else if (d.status === 'not_found') setPlayerCheck({ status: 'not_found' });
-        else setPlayerCheck({ status: 'skip' });
-      })
-      .catch(() => alive && setPlayerCheck({ status: 'skip' }))
-      .finally(() => clearTimeout(timer));
-    return () => { alive = false; clearTimeout(timer); ctrl.abort(); };
+    lookupPlayer(game, gameId).then((d) => {
+      if (!alive) return;
+      if (d.status === 'found' && d.image) setPlayerCheck({ status: 'found', image: d.image });
+      else if (d.status === 'not_found') setPlayerCheck({ status: 'not_found' });
+      else setPlayerCheck({ status: 'skip' });
+    });
+    return () => { alive = false; };
   }, [confirming, game, gameId]);
 
   // กดชำระ → ตรวจข้อมูล → ป๊อปอัปให้ลูกค้ายืนยันไอดีก่อน
