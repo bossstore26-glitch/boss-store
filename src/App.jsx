@@ -10,6 +10,9 @@ const STORAGE_KEY = 'bossstore_pending_qr';
 // ข้อความกลาง QR (QR ใช้ระดับแก้ผิด H ทนการบังได้ราว 30%)
 // ใส่เกม + ไอดีที่ลูกค้ากรอก กันโกงสามเส้า: คนที่ได้รูป QR ต่อมาจะเห็นว่ากำลังจ่ายเติมเกมให้ไอดีไหน
 // (ครอบตัดป้ายออก QR จะสแกนไม่ได้) ขนาดกล่อง/ตัวอักษรเท่าป้ายเดิมที่ทดสอบสแกนแล้ว
+// เกมที่บอทค้นตัวละครให้ดูก่อนจ่ายได้ (12 พ.ย. เพิ่ม Siam หลังร้านล็อกอินบัญชี VIP ในจอรับเหรียญ)
+const CHECK_ID_GAMES = ['royal', 'siam'];
+
 function qrLabel(game, gameId) {
   return [`เติม ${gameOf(game).name}`, `ID ${gameId}`, 'ร้าน BOSS STORE'];
 }
@@ -885,14 +888,14 @@ export default function App() {
 
   // 12 พ.ย. ค้นล่วงหน้า: ลูกค้าหยุดพิมพ์ไอดี ~1 วิ → เริ่มค้นเลย (ระหว่างกรอกยอดเงิน) กด "สร้าง QR" แล้วชื่อขึ้นทันที
   useEffect(() => {
-    if (game !== 'royal' || !/^\d{6,12}$/.test(gameId)) return undefined;
+    if (!CHECK_ID_GAMES.includes(game) || !/^\d{6,12}$/.test(gameId)) return undefined;
     const t = setTimeout(() => lookupPlayer(game, gameId), 1000);
     return () => clearTimeout(t);
   }, [game, gameId]);
 
   // เปิดป๊อปอัปยืนยัน → ใช้ผลค้น (ที่ค้นล่วงหน้าไว้/กำลังค้นอยู่) ถามไม่ได้/ช้า → skip = ไปต่อได้เหมือนเดิม
   useEffect(() => {
-    if (!confirming || game !== 'royal') {
+    if (!confirming || !CHECK_ID_GAMES.includes(game)) {
       setPlayerCheck({ status: 'skip' });
       return undefined;
     }
