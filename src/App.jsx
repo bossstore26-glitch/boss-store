@@ -102,7 +102,7 @@ function QrPreview({ src, onClose }) {
         ถ้ากดค้างแล้วไม่มีเมนู ให้แคปหน้าจอแทน
         <br />หรือกด ⋯ มุมขวาบน แล้วเลือกเปิดใน Safari / Chrome
       </p>
-      <button type="button" onClick={onClose} className="mt-5 text-indigo-300 underline underline-offset-4">
+      <button type="button" onClick={onClose} className="mt-5 text-white underline underline-offset-4">
         ปิด
       </button>
     </div>
@@ -126,7 +126,7 @@ function OrderCode({ id, visible, fallbackAt = 0, gameName = '', gameId = '' }) 
   if (!visible && !revealed) {
     if (!fallbackAt || now < fallbackAt) return null;
     return (
-      <button type="button" onClick={() => setRevealed(true)} className="mt-2 text-xs text-gray-400 underline underline-offset-4">
+      <button type="button" onClick={() => setRevealed(true)} className="bs-link muted" style={{ marginTop: 10, fontSize: 12 }}>
         โอนแล้วแต่ยังไม่ขึ้น? ดูรหัสรายการ
       </button>
     );
@@ -149,42 +149,41 @@ function OrderCode({ id, visible, fallbackAt = 0, gameName = '', gameId = '' }) 
   };
   return (
     <>
-      <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-        <span className="text-sm text-gray-300">
-          รหัสออเดอร์ <span className="font-bold tracking-wider text-white select-all">#{id}</span>
-        </span>
-        <button
-          type="button"
-          onClick={copy}
-          className="rounded-lg bg-amber-400 px-2.5 py-1.5 text-xs font-bold text-slate-900 transition active:scale-95"
-        >
-          {copied ? 'คัดลอกแล้ว ✓' : 'คัดลอก'}
-        </button>
+      <div className="bs-coderow">
+        <span>รหัสออเดอร์ <b className="select-all">#{id}</b></span>
+        <button type="button" onClick={copy} className="bs-copy">{copied ? 'คัดลอกแล้ว ✓' : 'คัดลอก'}</button>
       </div>
-      <p className="mt-1 text-xs text-gray-400">แจ้งรหัสนี้ที่เพจ BOSS STORE เมื่อเติมช้ากว่า 3 นาที</p>
+      <p className="bs-codenote">แจ้งรหัสนี้ที่เพจ BOSS STORE เมื่อเติมช้ากว่า 3 นาที</p>
     </>
+  );
+}
+
+// กล่องบนสุดของหน้าจ่าย (ร้านขอ 12 พ.ย. ให้คงแบบเดิม): "เติม <เกม> ให้ไอดี <ไอดี>" + รหัสออเดอร์ + ปุ่มคัดลอก
+// ร้านสั่ง 12 พ.ย.: โชว์รหัสทันทีที่เข้าหน้านี้ ไม่ต้องกดเปิดดู (เลิกกฎ 9 พ.ย. ที่ให้เห็นหลังจ่ายแล้วเท่านั้น)
+function OrderBox({ pending }) {
+  return (
+    <div className="bs-orderbox">
+      <p className="t">เติม <b>{gameOf(pending.game).name}</b> ให้ไอดี <b className="id">{pending.gameId}</b></p>
+      <OrderCode id={pending.id} gameName={gameOf(pending.game).name} gameId={pending.gameId} visible />
+    </div>
   );
 }
 
 // ป๊อปอัปเมื่อบอทส่งเหรียญเข้าไอดีเสร็จจริง กด "ตกลง" กลับหน้าแรก
 function DeliveredPopup({ pending, onOk }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-labelledby="delivered-title">
-      <div className="w-full max-w-sm bg-[#161a2b] border border-emerald-500/50 rounded-2xl p-6 shadow-2xl text-center">
-        <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto" />
-        <h2 id="delivered-title" className="mt-3 text-xl font-bold text-emerald-300">ส่งเหรียญเสร็จแล้ว</h2>
-        <p className="mt-3 text-sm text-gray-200 leading-relaxed">
-          <span className="text-pink-400 font-bold">{formatChips(pending.chips, pending.game)} เหรียญ</span>
-          <br />
-          เข้า {gameOf(pending.game).name} ไอดี <span className="text-yellow-300 font-bold">{pending.gameId}</span> แล้ว
+    <div className="bs-modal" role="dialog" aria-modal="true" aria-labelledby="delivered-title">
+      <div className="bs-card" style={{ textAlign: 'center' }}>
+        <CheckCircle2 className="w-16 h-16 mx-auto" style={{ color: 'var(--good)' }} />
+        <h2 id="delivered-title" className="bs-h2" style={{ marginTop: 10 }}>ส่งเหรียญเสร็จแล้ว</h2>
+        <p className="bs-gold" style={{ marginTop: 12, font: '800 26px/1.2 Prompt,sans-serif' }}>
+          {formatChips(pending.chips, pending.game)} เหรียญ
         </p>
-        <p className="mt-2 text-xs text-gray-400">เข้าเกมตรวจกล่องของขวัญได้เลย ขอบคุณที่ใช้บริการ BOSS STORE</p>
-        <button
-          type="button"
-          autoFocus
-          onClick={onOk}
-          className="mt-5 w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold py-3 rounded-xl"
-        >
+        <p className="bs-sub" style={{ marginTop: 4 }}>
+          เข้า {gameOf(pending.game).name} ไอดี <b className="bs-ink">{pending.gameId}</b> แล้ว
+          <br />เข้าเกมตรวจกล่องของขวัญได้เลย ขอบคุณที่ใช้บริการ BOSS STORE
+        </p>
+        <button type="button" autoFocus onClick={onOk} className="bs-btn primary" style={{ marginTop: 18 }}>
           ตกลง
         </button>
       </div>
@@ -256,69 +255,44 @@ function PaymentCard({ pending, onDone, onCancel }) {
   const dead = status === 'canceled' || status === 'expired';
 
   return (
-    <div className="w-full max-w-md rounded-2xl overflow-hidden border border-indigo-500/30 shadow-2xl bg-[#161a2b]">
-      <div className="bg-gradient-to-br from-violet-500 to-indigo-600 px-6 py-5">
-        <h1 className="text-2xl font-bold">เติมเหรียญ</h1>
-        <p className="text-sm text-indigo-100 mt-1">ใส่ไอดีผู้เล่น กรอกจำนวนเงิน แล้วสแกน QR PromptPay</p>
+    <>
+      <div className="bs-row" style={{ marginBottom: 12 }}>
+        <h1 className="bs-h1" style={{ fontSize: 28 }}>สแกนจ่าย</h1>
       </div>
-
-      <div className="px-6 py-6 flex flex-col items-center">
-        <div className="w-full bg-[#22273a] rounded-xl py-3 text-center">
-          เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
-          <span className="text-yellow-400 font-bold">{pending.gameId}</span>
+      <OrderBox pending={pending} />
+      <div className="bs-qrbox">
+        <div className="bs-muted" style={{ fontSize: 12.5 }}>ยอดชำระ</div>
+        <div className="big">{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}<small>บาท</small></div>
+        <div className="bs-gold" style={{ font: '700 14px/1.4 Prompt,sans-serif' }}>{formatChips(pending.chips, pending.game)} เหรียญ</div>
+        <div className="bs-qr" style={{ opacity: dead ? 0.3 : 1 }}>
+          <canvas ref={canvasRef} className="w-60 h-60 sm:w-64 sm:h-64 block" />
         </div>
-        <OrderCode id={pending.id} />
-
-        <p className="mt-5 text-sm text-gray-300">ยอดชำระ</p>
-        <p className="text-3xl font-bold mt-1">
-          ฿{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-        </p>
-        <p className="text-xs text-pink-400 mt-1">{formatChips(pending.chips, pending.game)} เหรียญ</p>
-
-        <div className={`mt-4 bg-white rounded-2xl p-3 ${dead ? 'opacity-30' : ''}`}>
-          <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
-        </div>
-
+      </div>
+      <div style={{ marginTop: 14 }}>
         {paid ? (
-          <div className="mt-5 w-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 shrink-0" />
-            <span>ชำระเงินสำเร็จ ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)</span>
-          </div>
+          <div className="bs-alert good">ชำระเงินสำเร็จ ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)</div>
         ) : dead ? (
-          <p className="mt-5 text-sm text-gray-300">
-            {status === 'expired' ? 'QR หมดอายุแล้ว' : 'ยกเลิกรายการแล้ว'} ยังไม่มีการเรียกเก็บเงิน
-          </p>
+          <div className="bs-alert info">{status === 'expired' ? 'QR หมดอายุแล้ว' : 'ยกเลิกรายการแล้ว'} ยังไม่มีการเรียกเก็บเงิน</div>
         ) : (
-          <p className="mt-5 text-sm text-gray-200 flex items-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
-            รอการชำระเงิน... สแกนด้วยแอปธนาคาร
+          <p className="bs-sub" style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+            <Loader2 className="w-5 h-5 bs-spin" /> รอการชำระเงิน... สแกนด้วยแอปธนาคาร
           </p>
         )}
-
-        <div className="mt-4 flex gap-6 text-sm">
-          {paid || dead ? (
-            <button onClick={onDone} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
-              {paid ? 'เติมเพิ่ม' : 'สร้าง QR ใหม่'}
-            </button>
-          ) : (
-            <>
-              <button onClick={saveQr} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
-                บันทึก QR
-              </button>
-              <button
-                onClick={cancel}
-                disabled={cancelling}
-                className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200 disabled:opacity-50"
-              >
-                {cancelling ? 'กำลังยกเลิก...' : 'ยกเลิก / แก้ไขยอด'}
-              </button>
-            </>
-          )}
-        </div>
-
-        <p className="mt-6 text-xs text-gray-400">ชำระเงินอย่างปลอดภัยผ่าน Stripe</p>
       </div>
-    </div>
+      <div className="bs-row" style={{ marginTop: 14, justifyContent: 'center', gap: 20 }}>
+        {paid || dead ? (
+          <button onClick={onDone} className="bs-link">{paid ? 'เติมเพิ่ม' : 'สร้าง QR ใหม่'}</button>
+        ) : (
+          <>
+            <button onClick={saveQr} className="bs-link">บันทึก QR</button>
+            <button onClick={cancel} disabled={cancelling} className="bs-link">
+              {cancelling ? 'กำลังยกเลิก...' : 'ยกเลิก / แก้ไขยอด'}
+            </button>
+          </>
+        )}
+      </div>
+      <p className="bs-cap" style={{ marginTop: 14 }}>ชำระเงินอย่างปลอดภัยผ่าน Stripe</p>
+    </>
   );
 }
 
@@ -350,88 +324,165 @@ async function slipToDataUrl(file) {
 // ปุ่มอัปโหลดสลิป: เด้ง + วงแสงกะพริบ (เริ่มทันทีที่เปิดหน้านี้) ปิดเองถ้าเครื่องตั้ง "ลดการเคลื่อนไหว"
 const NUDGE_CSS = `
 @keyframes upload-nudge-bounce { 0%, 100% { transform: translateY(0) } 12% { transform: translateY(-6px) } 24% { transform: translateY(0) } 34% { transform: translateY(-3px) } 44% { transform: translateY(0) } }
-@keyframes upload-nudge-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, .75) } 50% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0) } }
+@keyframes upload-nudge-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(201, 74, 44, .55) } 50% { box-shadow: 0 0 0 10px rgba(201, 74, 44, 0) } }
 .upload-nudge { animation: upload-nudge-bounce 2s ease-in-out infinite, upload-nudge-glow 1.4s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { .upload-nudge { animation: upload-nudge-glow 2s ease-out infinite; } }
 `;
 
-// ธีมสว่าง (ขาว-ฟ้า): สลับได้จากปุ่มมุมขวาบน · ค่าเริ่มต้นเป็นโหมดมืดเหมือนเดิม (จำค่าไว้ในเครื่อง)
-const THEME_CSS = `
-.theme-toggle{position:fixed;top:12px;right:12px;z-index:60;display:inline-flex;align-items:center;gap:6px;
-  padding:7px 12px;border-radius:999px;cursor:pointer;font:600 12px/1 "Leelawadee UI","Tahoma",sans-serif;
-  color:#fff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);
-  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .15s,color .15s,border-color .15s}
-.theme-toggle:hover{background:rgba(255,255,255,.18)}
-.theme-toggle:focus-visible{outline:2px solid #93C5FD;outline-offset:2px}
-.theme-light .theme-toggle{color:#0F172A;background:#fff;border-color:#D8E4F5;box-shadow:0 2px 10px rgba(15,23,42,.10)}
-.theme-light .theme-toggle:hover{background:#F2F7FF}
-
-/* พื้นผิว: ขาว-ฟ้า */
-.theme-light [class*="bg-[#0b0f19]"]{background-color:#F4F8FD !important}
-.theme-light [class*="from-[#0b0f19]"]{background-image:linear-gradient(to bottom,#F4F8FD,#E6EFFB) !important}
-.theme-light [class*="bg-[#131b2e]"]{background-color:#FFFFFF !important}
-.theme-light [class*="bg-[#161a2b]"]{background-color:#F8FBFF !important}
-.theme-light [class*="bg-[#1a243f]"]{background-color:#FFFFFF !important}
-.theme-light [class*="bg-[#22273a]"]{background-color:#F1F6FC !important}
-
-/* เส้นขอบ */
-.theme-light .border-gray-700{border-color:#DCE7F5 !important}
-.theme-light .border-gray-800{border-color:#E6EEF9 !important}
-.theme-light .border-gray-500{border-color:#C3D6EC !important}
-
-/* ตัวอักษร */
-.theme-light .text-white{color:#0F172A !important}
-.theme-light .text-gray-100{color:#0F172A !important}
-.theme-light .text-gray-200{color:#1E293B !important}
-.theme-light .text-gray-300{color:#334155 !important}
-.theme-light .text-gray-400{color:#64748B !important}
-.theme-light .text-gray-500{color:#94A3B8 !important}
-.theme-light .text-indigo-100{color:#E8F0FF !important}
-.theme-light .text-indigo-200{color:#1D4ED8 !important}
-.theme-light .text-indigo-300{color:#2563EB !important}
-.theme-light .text-indigo-400{color:#3B82F6 !important}
-.theme-light .text-yellow-300{color:#1D4ED8 !important}
-.theme-light .text-yellow-400{color:#1D4ED8 !important}
-.theme-light .text-pink-400{color:#1D4ED8 !important}
-.theme-light .text-purple-400{color:#2563EB !important}
-.theme-light .text-emerald-300{color:#047857 !important}
-.theme-light .text-emerald-400{color:#059669 !important}
-.theme-light .text-red-300{color:#B91C1C !important}
-.theme-light .text-red-400{color:#DC2626 !important}
-.theme-light .text-amber-300{color:#B45309 !important}
-.theme-light .text-orange-300{color:#B45309 !important}
-
-/* หัวการ์ด/ปุ่ม: ม่วง-เหลือง → ฟ้า (คงสี เขียว/ส้ม ที่สื่อความหมาย) */
-.theme-light .from-violet-500{background-image:linear-gradient(135deg,#3B82F6,#1D4ED8) !important}
-.theme-light .from-purple-600{background-image:linear-gradient(90deg,#3B82F6,#1D4ED8) !important}
-.theme-light [class*="bg-yellow-500/15"]{background-color:rgba(37,99,235,.10) !important}
-.theme-light [class*="border-yellow-400"]{border-color:#2563EB !important}
-.theme-light [class*="bg-purple-600/30"]{background-color:rgba(37,99,235,.12) !important}
-.theme-light [class*="border-purple-500"]{border-color:#93C5FD !important}
-.theme-light [class*="border-purple-400"]{border-color:#2563EB !important}
-
-/* ตัวอักษรขาวบนพื้นสีเข้ม/ปุ่มสี */
-.theme-light .from-violet-500,.theme-light .from-violet-500 *,
-.theme-light .from-emerald-500,.theme-light .from-emerald-500 *,
-.theme-light .from-emerald-600,.theme-light .from-emerald-600 *,
-.theme-light .from-purple-600,.theme-light .from-purple-600 *,
-.theme-light .from-orange-500,.theme-light .from-orange-500 *{color:#fff !important}
-
-.theme-light input::placeholder,.theme-light textarea::placeholder{color:#94A3B8}
+// ---------- ดีไซน์ใหม่ 12 พ.ย. (ร้านส่งแบบมา: โทนครีม ตัวหนาใหญ่ การ์ดยอดเงินสีเข้ม ปุ่มส้มอิฐ) ----------
+// สีทั้งหมดเป็นตัวแปร สลับมืด/สว่างด้วย class theme-dark ที่ <html> (ปุ่มพระจันทร์มุมขวาบน)
+const STYLE_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap');
+:root{--bg:#ece7dd;--card:#fbf9f4;--card2:#f4f0e8;--line:#e3ddd1;--ink:#1c1813;--muted:#776e62;--soft:#a39a8d;
+  --accent:#c94a2c;--accent-ink:#fff;--accent-hover:#b43f24;--good:#1f8a5b;--good-bg:#e8f4ec;--warn:#9a5b06;--warn-bg:#fbf1dc;
+  --bad:#b4321f;--bad-bg:#fbebe6;--bad-line:#f0c7bb;--gold:#c48a1a;--dark:#1f1b16;--dark-ink:#f6f1e8;--chip:#efe9df;--chip-ink:#1c1813;
+  --royal:#f0821f;--siam:#8b5cf6;--tmn:#e8771e;--shadow:0 1px 0 rgba(28,24,19,.04),0 10px 30px rgba(28,24,19,.08)}
+html.theme-dark{--bg:#12100d;--card:#1c1915;--card2:#25211c;--line:#332e27;--ink:#f3eee6;--muted:#aaa194;--soft:#7f776b;
+  --accent:#e0603e;--accent-hover:#ec7351;--good:#4cc68a;--good-bg:#173226;--warn:#f0b65a;--warn-bg:#33270f;
+  --bad:#f08a72;--bad-bg:#3a1c15;--bad-line:#5c2d22;--gold:#e7b14a;--dark:#0d0b09;--dark-ink:#f6f1e8;--chip:#2c2722;--chip-ink:#f3eee6;
+  --shadow:0 10px 30px rgba(0,0,0,.35)}
+html,body{background:var(--bg)!important}
+.bs-page{min-height:100vh;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;align-items:center;
+  padding:20px 14px 40px;font-family:"IBM Plex Sans Thai","Leelawadee UI",Tahoma,sans-serif}
+.bs-wrap{width:100%;max-width:440px}
+.bs-card{background:var(--card);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:22px 20px}
+.bs-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.bs-logo{display:flex;align-items:center;gap:8px;font:800 17px/1 Prompt,sans-serif;letter-spacing:.2px;color:var(--ink)}
+.bs-logo i{width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-style:normal;font-size:12px}
+.bs-pill{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 Prompt,sans-serif;color:var(--ink)}
+.bs-dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent)}
+.bs-moon{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--ink);
+  display:grid;place-items:center;cursor:pointer;font-size:15px}
+.bs-moon:focus,.bs-btn:focus,.bs-opt:focus,.bs-chipbtn:focus,.bs-method:focus,.bs-link:focus,.bs-copy:focus{outline:none}
+.bs-moon:focus-visible,.bs-btn:focus-visible,.bs-opt:focus-visible,.bs-chipbtn:focus-visible,.bs-method:focus-visible,
+.bs-link:focus-visible,.bs-copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:12px}
+.bs-h1{font:800 clamp(27px,8vw,34px)/1.12 Prompt,sans-serif;color:var(--ink);letter-spacing:-.3px}
+.bs-h2{font:800 24px/1.15 Prompt,sans-serif;color:var(--ink)}
+.bs-sub{margin-top:8px;font-size:13.5px;color:var(--muted);line-height:1.55}
+.bs-label{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 8px;font:600 14px/1.2 Prompt,sans-serif;color:var(--ink)}
+.bs-label small{font:400 12px/1 "IBM Plex Sans Thai",sans-serif;color:var(--muted)}
+.bs-opt{position:relative;text-align:left;border-radius:16px;border:1.5px solid var(--line);background:var(--card2);padding:12px 14px;
+  color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s}
+.bs-opt[aria-checked="true"]{background:var(--card);border-color:var(--ink)}
+.bs-opt:disabled{opacity:.5;cursor:not-allowed}
+.bs-opt b{font:700 15px/1.2 Prompt,sans-serif;display:flex;align-items:center;gap:7px}
+.bs-opt span.s{display:block;margin-top:3px;font-size:12px;color:var(--muted)}
+.bs-tag{position:absolute;top:-9px;right:10px;background:var(--ink);color:var(--card);font:600 10.5px/1 Prompt,sans-serif;padding:4px 8px;border-radius:999px}
+.bs-gdot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.bs-input{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:14px 16px;color:var(--ink);
+  font:700 22px/1.2 Prompt,sans-serif;letter-spacing:.5px;outline:none;transition:border-color .15s}
+.bs-input:focus{border-color:var(--ink)}
+.bs-input::placeholder{color:var(--soft);font-weight:500;letter-spacing:0}
+.bs-check{position:absolute;right:14px;top:50%;transform:translateY(-50%);font:600 12.5px/1 Prompt,sans-serif}
+.bs-amount{background:var(--dark);color:var(--dark-ink);border-radius:20px;padding:16px 16px 14px}
+html.theme-dark .bs-amount{border:1px solid var(--line)}
+.bs-amount .top{display:flex;justify-content:space-between;font-size:12px;color:#b9b0a3}
+.bs-amount input{width:100%;background:transparent;border:0;outline:none;color:var(--dark-ink);text-align:center;
+  font:800 46px/1.1 Prompt,sans-serif;padding:10px 0 2px;-moz-appearance:textfield}
+.bs-amount input::-webkit-outer-spin-button,.bs-amount input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.bs-amount input::placeholder{color:#5f574d}
+.bs-amount .unit{text-align:center;font-size:13px;color:#b9b0a3;margin-top:-2px}
+.bs-amount .coins{margin-top:10px;padding-top:10px;border-top:1px dashed #4a433a;font:700 15px/1.3 Prompt,sans-serif;color:var(--gold)}
+.bs-amount .note{font-size:11.5px;color:#9b9284;margin-top:2px}
+.bs-chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px}
+.bs-chipbtn{background:var(--chip);color:var(--chip-ink);border:0;border-radius:12px;padding:11px 0;font:700 14px/1 Prompt,sans-serif;cursor:pointer}
+.bs-chipbtn[aria-pressed="true"]{background:var(--accent);color:#fff}
+.bs-link{background:none;border:0;color:var(--ink);text-decoration:underline;text-underline-offset:4px;font-size:13px;cursor:pointer}
+.bs-link.muted{color:var(--muted)}
+.bs-pkg{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}
+.bs-pkg button{display:flex;justify-content:space-between;align-items:center;background:var(--card2);border:1.5px solid var(--line);
+  border-radius:12px;padding:9px 12px;font-size:13px;color:var(--ink);cursor:pointer}
+.bs-pkg button[aria-pressed="true"]{border-color:var(--ink);background:var(--card)}
+.bs-pkg b{font:700 13px/1 Prompt,sans-serif;color:var(--gold)}
+.bs-methods{border-top:1px solid var(--line)}
+.bs-method{width:100%;display:flex;align-items:center;gap:12px;padding:14px 2px;border:0;border-bottom:1px solid var(--line);
+  background:none;color:var(--ink);text-align:left;cursor:pointer}
+.bs-method:disabled{opacity:.5;cursor:not-allowed}
+.bs-radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--soft);flex:none;display:grid;place-items:center}
+.bs-method[aria-checked="true"] .bs-radio{border-color:var(--radio,var(--accent))}
+.bs-method[aria-checked="true"] .bs-radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--radio,var(--accent))}
+.bs-method.pp{--radio:#6a5cf5}
+html.theme-dark .bs-method.pp{--radio:#8f84ff}
+.bs-btn.primary.pp{background:#6a5cf5;box-shadow:0 8px 20px rgba(106,92,245,.35)}
+.bs-btn.primary.pp:hover{background:#5a4be6}
+html.theme-dark .bs-btn.primary.pp{background:#7a6cff;box-shadow:0 8px 20px rgba(122,108,255,.3)}
+html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
+.bs-method b{font:700 15px/1.2 Prompt,sans-serif;display:block}
+.bs-method span.s{font-size:12px;color:var(--muted)}
+.bs-badge{margin-left:auto;font:600 11px/1 Prompt,sans-serif;padding:5px 9px;border-radius:999px;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad-line)}
+.bs-alert{border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.55}
+.bs-alert.bad{background:var(--bad-bg);border:1px solid var(--bad-line);color:var(--bad)}
+.bs-alert.warn{background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);color:var(--warn)}
+.bs-alert.good{background:var(--good-bg);border:1px solid color-mix(in srgb,var(--good) 30%,transparent);color:var(--good)}
+.bs-alert.info{background:var(--card2);border:1px solid var(--line);color:var(--ink)}
+.bs-alert b,.bs-alert strong{font-family:Prompt,sans-serif;font-weight:700}
+.bs-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:18px;padding:16px 18px;
+  font:700 17px/1.2 Prompt,sans-serif;cursor:pointer;transition:background .15s,transform .05s;text-decoration:none}
+.bs-btn:active{transform:translateY(1px)}
+.bs-btn.primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 35%,transparent)}
+.bs-btn.primary:hover{background:var(--accent-hover)}
+.bs-btn.tmn{background:var(--tmn);color:#fff}
+.bs-btn.ghost{background:var(--card2);color:var(--ink);border:1.5px solid var(--line);font-size:15px;padding:13px}
+.bs-btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+.bs-trust{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin-top:14px;font-size:12px;color:var(--muted)}
+.bs-trust span::before{content:"✓ ";color:var(--good);font-weight:700}
+.bs-cap{font-size:11.5px;color:var(--muted);text-align:center;letter-spacing:.2px;margin-bottom:6px}
+.bs-qrbox{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;text-align:left}
+.bs-qrbox .big{font:800 42px/1 Prompt,sans-serif;color:var(--ink)}
+.bs-qrbox .big small{font:600 15px/1 Prompt,sans-serif;color:var(--muted);margin-left:6px}
+.bs-qr{background:#fff;border-radius:16px;padding:8px;margin:14px auto 0;width:fit-content}
+.bs-timer{text-align:center;font-size:13px;color:var(--muted);margin-top:8px}
+.bs-timer b{font:800 16px/1 Prompt,sans-serif;color:var(--ink);margin:0 4px}
+.bs-timer.low b{color:var(--bad)}
+.bs-code{border:1.5px dashed var(--line);border-radius:18px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bs-code small{display:block;font-size:11.5px;color:var(--muted)}
+.bs-code b{font:800 22px/1.2 Prompt,sans-serif;letter-spacing:1px;color:var(--ink)}
+.bs-copy{background:var(--card);border:1.5px solid var(--ink);color:var(--ink);border-radius:12px;padding:7px 12px;font:700 12.5px/1 Prompt,sans-serif;cursor:pointer}
+.bs-orderbox{background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:14px 14px 12px;text-align:center;margin-bottom:12px}
+.bs-orderbox .t{font:600 17px/1.4 Prompt,sans-serif;color:var(--ink)}
+.bs-orderbox .t b{font-weight:800}
+.bs-orderbox .t b.id{color:var(--gold)}
+.bs-coderow{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;font:600 15px/1.3 Prompt,sans-serif;color:var(--ink)}
+.bs-coderow b{font-weight:800;letter-spacing:1px;font-size:18px}
+.bs-coderow .bs-copy{background:#f5b81c;border-color:#f5b81c;color:#1c1813;padding:8px 14px;font-size:13.5px}
+.bs-codenote{margin-top:6px;font-size:12px;color:var(--muted)}
+.bs-steps{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.bs-steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink)}
+.bs-steps li i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--card);font:700 12px/22px Prompt,sans-serif;text-align:center;font-style:normal}
+.bs-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.bs-modal{position:fixed;inset:0;z-index:50;background:rgba(20,17,13,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.bs-modal .bs-card{width:100%;max-width:400px;max-height:92vh;overflow:auto}
+.bs-idbig{font:800 32px/1.1 Prompt,sans-serif;letter-spacing:1px;color:var(--ink)}
+.bs-otp{flex:1;min-width:0;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--ink);
+  font:700 20px/1 Prompt,sans-serif;letter-spacing:6px;outline:none}
+.bs-otp:focus{border-color:var(--ink)}
+.bs-muted{color:var(--muted)}
+.bs-gold{color:var(--gold)}
+.bs-ink{color:var(--ink)}
+.bs-spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 `;
 
+// ปุ่มพระจันทร์ มุมขวาบน: สลับโหมดมืด/สว่าง (จำค่าไว้ในเครื่อง · เริ่มต้นโหมดสว่างแบบดีไซน์ใหม่)
 function ThemeToggle({ theme, onToggle }) {
-  const light = theme === 'light';
+  const dark = theme === 'dark';
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="theme-toggle"
-      aria-label={light ? 'สลับเป็นโหมดมืด' : 'สลับเป็นโหมดสว่าง'}
-    >
-      <span aria-hidden="true">{light ? '☾' : '☀'}</span>
-      <span>{light ? 'โหมดมืด' : 'โหมดสว่าง'}</span>
+    <button type="button" onClick={onToggle} className="bs-moon" aria-label={dark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}>
+      <span aria-hidden="true">{dark ? '☀' : '☾'}</span>
     </button>
+  );
+}
+
+// หัวการ์ด: โลโก้ BOSS STORE + ไฟเขียว 24 ชม. + ปุ่มธีม (ทุกหน้าใช้เหมือนกัน)
+function Header({ theme, onToggle, right }) {
+  return (
+    <div className="bs-head">
+      <div className="bs-logo"><i aria-hidden="true">B</i>BOSS STORE</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {right || <span className="bs-pill"><span className="bs-dot" aria-hidden="true" />24 ชม.</span>}
+        {onToggle && <ThemeToggle theme={theme} onToggle={onToggle} />}
+      </div>
+    </div>
   );
 }
 
@@ -562,33 +613,29 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   const checking = status === 'checking';
   const locked = status === 'locked';
 
+  const money = pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 });
   return (
-    <div className="w-full max-w-md rounded-2xl overflow-hidden border border-indigo-500/30 shadow-2xl bg-[#161a2b]">
+    <>
       <style>{NUDGE_CSS}</style>
       {returnPrompt && status === 'idle' && (
-        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-labelledby="return-title">
-          <div className="w-full max-w-sm bg-[#161a2b] border border-emerald-500/50 rounded-2xl p-6 shadow-2xl text-center">
-            <div className="text-5xl">📎</div>
-            <h2 id="return-title" className="mt-2 text-xl font-bold text-emerald-300">โอนเสร็จแล้วใช่ไหม?</h2>
-            <p className="mt-2 text-sm text-gray-200 leading-relaxed">
-              อัปโหลดสลิปเพื่อรับเหรียญ
-              <br />
-              <span className="text-pink-400 font-bold">{formatChips(pending.chips, pending.game)} เหรียญ</span> → ไอดี{' '}
-              <span className="text-yellow-300 font-bold">{pending.gameId}</span>
+        <div className="bs-modal" role="dialog" aria-modal="true" aria-labelledby="return-title">
+          <div className="bs-card" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 44 }} aria-hidden="true">📎</div>
+            <h2 id="return-title" className="bs-h2" style={{ marginTop: 6 }}>โอนเสร็จแล้วใช่ไหม?</h2>
+            <p className="bs-sub">
+              อัปโหลดสลิปเพื่อรับ <b className="bs-gold">{formatChips(pending.chips, pending.game)} เหรียญ</b>
+              <br />เข้าไอดี <b className="bs-ink">{pending.gameId}</b>
             </p>
             <button
               type="button"
               autoFocus
               onClick={() => { setReturnPrompt(false); fileRef.current?.click(); }}
-              className="mt-5 w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold py-3.5 rounded-xl upload-nudge"
+              className="bs-btn primary upload-nudge"
+              style={{ marginTop: 18 }}
             >
               📎 เลือกสลิปจากแอปธนาคาร
             </button>
-            <button
-              type="button"
-              onClick={() => setReturnPrompt(false)}
-              className="mt-3 text-sm text-gray-400 underline underline-offset-4"
-            >
+            <button type="button" onClick={() => setReturnPrompt(false)} className="bs-link muted" style={{ marginTop: 12 }}>
               ยังไม่ได้โอน
             </button>
           </div>
@@ -596,59 +643,48 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
       )}
       <QrPreview src={preview} onClose={() => setPreview(null)} />
       {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} />}
-      <div className="bg-gradient-to-br from-violet-500 to-indigo-600 px-6 py-5">
-        <h1 className="text-2xl font-bold">เติมเหรียญผ่านพร้อมเพย์</h1>
-        <p className="text-sm text-indigo-100 mt-1">สแกนจ่ายด้วยแอปธนาคาร แล้วอัปโหลดสลิป</p>
+
+      <div className="bs-row" style={{ marginBottom: 12, alignItems: 'flex-end' }}>
+        <h1 className="bs-h1" style={{ fontSize: 28 }}>
+          {paid ? 'กำลังส่งเหรียญ' : review ? 'รอตรวจสอบ' : 'สแกนจ่าย'}
+        </h1>
       </div>
+      <OrderBox pending={pending} visible={status !== 'idle' || !!msg} />
 
-      <div className="px-6 py-6 flex flex-col items-center">
-        <div className="w-full bg-[#22273a] rounded-xl py-3 px-4 text-center">
-          <div>
-            เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
-            <span className="text-yellow-400 font-bold">{pending.gameId}</span>
-          </div>
-          <OrderCode id={pending.id} visible={status !== 'idle' || !!msg}
-                     gameName={gameOf(pending.game).name} gameId={pending.gameId} />
-        </div>
-
-        <p className="mt-5 text-sm text-gray-300">ยอดโอน (ต้องตรงตามนี้)</p>
-        <p className="text-3xl font-bold mt-1">
-          ฿{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-        </p>
-        <p className="text-xs text-pink-400 mt-1">{formatChips(pending.chips, pending.game)} เหรียญ</p>
-
+      <div className="bs-qrbox">
+        <div className="bs-muted" style={{ fontSize: 12.5 }}>ยอดที่ต้องโอน (ต้องตรงตามนี้)</div>
+        <div className="big">{money}<small>บาท</small></div>
+        <div className="bs-gold" style={{ font: '700 14px/1.4 Prompt,sans-serif' }}>{formatChips(pending.chips, pending.game)} เหรียญ</div>
         {!paid && !review && !qrExpired && (
           <>
-            <div className="mt-4 bg-white rounded-2xl p-3">
-              <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
+            <div className="bs-qr">
+              <canvas ref={canvasRef} className="w-60 h-60 sm:w-64 sm:h-64 block" />
             </div>
-            <p className={`mt-2 text-sm font-semibold ${secondsLeft <= 60 ? 'text-red-400' : 'text-amber-300'}`}>
-              QR หมดอายุใน {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')} นาที
+            <p className={`bs-timer ${secondsLeft <= 60 ? 'low' : ''}`}>
+              เหลือ<b>{Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</b>นาทีก่อน QR หมดอายุ
             </p>
           </>
         )}
         {!paid && !review && qrExpired && (
-          <div className="mt-4 w-full bg-[#22273a] border border-red-500/40 rounded-xl px-4 py-4 text-center">
-            <p className="text-red-300 font-bold">QR หมดอายุแล้ว (ใช้ได้ 10 นาที)</p>
-            <p className="text-xs text-gray-300 mt-1 leading-relaxed">ยังไม่ได้โอน → กดสร้าง QR ใหม่ · โอนไปแล้ว → อัปโหลดสลิปด้านล่าง</p>
-            <button
-              type="button"
-              onClick={() => { savePending(null); onCancel(); }}
-              className="mt-3 w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 rounded-xl"
-            >
+          <div className="bs-alert bad" style={{ marginTop: 12, textAlign: 'center' }}>
+            <b>QR หมดอายุแล้ว (ใช้ได้ 10 นาที)</b>
+            <div style={{ fontSize: 12, marginTop: 4 }}>ยังไม่ได้โอน → สร้าง QR ใหม่ · โอนไปแล้ว → อัปโหลดสลิปด้านล่าง</div>
+            <button type="button" onClick={() => { savePending(null); onCancel(); }} className="bs-btn ghost" style={{ marginTop: 10 }}>
               สร้าง QR ใหม่
             </button>
           </div>
         )}
+      </div>
 
+      <div style={{ marginTop: 16 }}>
         {paid ? (
-          <div className="mt-5 w-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+          <div className="bs-alert good" style={{ display: 'flex', gap: 8 }}>
             <CheckCircle2 className="w-5 h-5 shrink-0" />
             <span>ตรวจสลิปผ่าน ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)</span>
           </div>
         ) : review ? (
-          <div className="mt-5 w-full bg-amber-500/10 border border-amber-500/40 text-amber-200 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
-            <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
+          <div className="bs-alert warn" style={{ display: 'flex', gap: 8 }}>
+            <Loader2 className="w-5 h-5 shrink-0 bs-spin" />
             <span>
               {bankwait
                 ? 'ได้รับสลิปแล้ว ⏳ กำลังรอธนาคารยืนยันรายการ (ปกติ 1–10 นาที)'
@@ -660,64 +696,48 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           </div>
         ) : (
           <>
-            <ol className="mt-5 w-full text-sm text-gray-200 space-y-1 list-decimal list-inside">
-              <li>สแกน QR หรือบันทึก QR ไปเปิดในแอปธนาคาร (ภายใน 10 นาที)</li>
-              <li>โอนยอด <span className="font-bold">{pending.amount.toLocaleString()} บาท</span> ตรงตามนี้</li>
-              <li>กดปุ่มด้านล่าง เลือกภาพสลิปจากแอปธนาคาร</li>
+            <ol className="bs-steps">
+              <li><i>1</i><span>สแกน QR ด้วยแอปธนาคาร หรือบันทึกภาพไว้สแกนภายหลัง (ภายใน 10 นาที)</span></li>
+              <li><i>2</i><span>โอนยอด <b>{money} บาท</b> ให้ตรงตามที่แสดง</span></li>
+              <li><i>3</i><span>อัปโหลดสลิป ระบบตรวจและส่งเหรียญอัตโนมัติ</span></li>
             </ol>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => upload(e.target.files?.[0])}
-            />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
             <button
               type="button"
               disabled={checking || locked}
               onClick={() => fileRef.current?.click()}
-              className={`mt-4 w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 ${
-                nudgeUpload && !checking && !locked ? 'upload-nudge' : ''
-              }`}
+              className={`bs-btn primary ${nudgeUpload && !checking && !locked ? 'upload-nudge' : ''}`}
+              style={{ marginTop: 18 }}
             >
-              {checking ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" /> กำลังตรวจสลิปกับธนาคาร...
-                </>
-              ) : (
-                '📎 โอนแล้ว อัปโหลดสลิป'
-              )}
+              {checking ? (<><Loader2 className="w-5 h-5 bs-spin" /> กำลังตรวจสลิปกับธนาคาร...</>) : 'อัปโหลดสลิป'}
             </button>
             {msg && (
-              <p className={`mt-3 text-sm text-center ${msgBad ? 'text-red-400' : 'text-emerald-300'}`}>{msg}</p>
+              <div className={`bs-alert ${msgBad ? 'bad' : 'good'}`} style={{ marginTop: 10, textAlign: 'center' }}>{msg}</div>
             )}
-            <p className="mt-3 text-xs text-gray-400 text-center leading-relaxed">
-              ระบบตรวจสลิปกับธนาคารอัตโนมัติ สลิปปลอม/สลิปเก่า/ยอดไม่ตรงจะไม่ผ่าน
+            <p className="bs-cap" style={{ marginTop: 10, lineHeight: 1.6 }}>
+              สลิปปลอม สลิปซ้ำ หรือยอดไม่ตรง ระบบจะไม่ส่งเหรียญ
               <br />อัปโหลดได้ภายใน 24 ชม. (ปิดหน้านี้แล้วกลับมาใหม่ได้)
             </p>
           </>
         )}
-
-        <div className="mt-4 flex gap-6 text-sm">
-          {paid ? (
-            <button onClick={onDone} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
-              เติมเพิ่ม
-            </button>
-          ) : review ? null : (
-            <>
-              {!qrExpired && (
-                <button onClick={saveQr} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
-                  บันทึก QR
-                </button>
-              )}
-              <button onClick={cancel} className="text-indigo-300 underline underline-offset-4 hover:text-indigo-200">
-                ยกเลิก / แก้ไขยอด
-              </button>
-            </>
-          )}
-        </div>
       </div>
-    </div>
+
+      <div className="bs-row" style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+        {paid ? (
+          <>
+            <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
+            <button onClick={onDone} className="bs-link">เติมเพิ่ม</button>
+          </>
+        ) : review ? (
+          <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
+        ) : (
+          <>
+            {!qrExpired ? <button onClick={saveQr} className="bs-link">บันทึก QR</button> : <span />}
+            <button onClick={cancel} className="bs-link muted">ยกเลิก / แก้ไขยอด</button>
+          </>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -784,133 +804,102 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
   const review = status === 'review';
 
   return (
-    <div className="w-full max-w-md rounded-2xl overflow-hidden border border-orange-500/30 shadow-2xl bg-[#161a2b]">
+    <>
       {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} />}
-      <div className="bg-gradient-to-br from-orange-500 to-amber-500 px-6 py-5">
-        <h1 className="text-2xl font-bold">เติมเหรียญผ่าน TrueMoney</h1>
-        <p className="text-sm text-orange-50 mt-1">กดปุ่มเปิดแอปทรูมันนี่ ยอดและข้อความกรอกไว้ให้แล้ว</p>
+      <div className="bs-row" style={{ marginBottom: 12, alignItems: 'flex-end' }}>
+        <h1 className="bs-h1" style={{ fontSize: 28 }}>{paid ? 'กำลังส่งเหรียญ' : review ? 'รอตรวจสอบ' : 'โอนทรูมันนี่'}</h1>
+      </div>
+      <OrderBox
+        pending={pending}
+        visible={status !== 'waiting'}
+        fallbackAt={pending.expiresAt ? (pending.expiresAt - 30 * 60 + 3 * 60) * 1000 : 0}
+      />
+
+      <div className="bs-qrbox">
+        <div className="bs-muted" style={{ fontSize: 12.5 }}>ยอดโอน</div>
+        <div className="big">{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}<small>บาท</small></div>
+        <div className="bs-gold" style={{ font: '700 14px/1.4 Prompt,sans-serif' }}>{formatChips(pending.chips, pending.game)} เหรียญ</div>
       </div>
 
-      <div className="px-6 py-6 flex flex-col items-center">
-        <div className="w-full bg-[#22273a] rounded-xl py-3 text-center">
-          เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
-          <span className="text-yellow-400 font-bold">{pending.gameId}</span>
-        </div>
-        <OrderCode
-          id={pending.id}
-          visible={status !== 'waiting'}
-          fallbackAt={pending.expiresAt ? (pending.expiresAt - 30 * 60 + 3 * 60) * 1000 : 0}
-        />
-
-        <p className="mt-5 text-sm text-gray-300">ยอดโอน</p>
-        <p className="text-3xl font-bold mt-1">
-          ฿{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-        </p>
-        <p className="text-xs text-pink-400 mt-1">{formatChips(pending.chips, pending.game)} เหรียญ</p>
-
+      <div style={{ marginTop: 16 }}>
         {paid ? (
-          <div className="mt-5 w-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+          <div className="bs-alert good" style={{ display: 'flex', gap: 8 }}>
             <CheckCircle2 className="w-5 h-5 shrink-0" />
             <span>ได้รับเงินแล้ว ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)</span>
           </div>
         ) : review && otpInfo ? (
-          <div className="mt-5 w-full bg-[#22273a] border border-orange-500/40 rounded-xl px-4 py-4">
-            <p className="text-sm text-gray-100 font-semibold">ได้รับเงินแล้ว ✅ ยืนยันตัวตนครั้งแรก</p>
-            <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+          <div className="bs-alert info">
+            <b>ได้รับเงินแล้ว ✅ ยืนยันตัวตนครั้งแรก</b>
+            <p className="bs-muted" style={{ fontSize: 12.5, marginTop: 4 }}>
               ร้านส่งรหัส 6 หลักทาง SMS ไปที่เบอร์ทรูมันนี่ที่โอน ({otpInfo.phone}) กรอกรหัสเพื่อรับเหรียญทันที
             </p>
-            <p className="text-xs text-amber-300 mt-2 leading-relaxed">
+            <p style={{ fontSize: 12.5, marginTop: 6, color: 'var(--warn)' }}>
               ⚠️ ถ้ามีคนอื่นขอรหัสนี้จากคุณ หรือคุณไม่ได้กำลังเติมเกมให้ไอดีของตัวเอง ห้ามให้รหัส = มิจฉาชีพ
             </p>
-            <div className="mt-3 flex gap-2">
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="รหัส 6 หลัก"
-                aria-label="รหัส OTP 6 หลัก"
-                className="flex-1 min-w-0 bg-[#1a243f] border border-gray-700 rounded-xl px-4 py-3 text-white text-lg tracking-widest focus:outline-none focus:border-orange-400"
+                type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
+                value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                placeholder="รหัส 6 หลัก" aria-label="รหัส OTP 6 หลัก" className="bs-otp"
               />
-              <button
-                type="button"
-                disabled={otpBusy || otp.length !== 6}
-                onClick={() => otpCall('verify')}
-                className="bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold px-5 rounded-xl disabled:opacity-50"
-              >
+              <button type="button" disabled={otpBusy || otp.length !== 6} onClick={() => otpCall('verify')}
+                      className="bs-btn primary" style={{ width: 'auto', padding: '12px 18px', fontSize: 15 }}>
                 ยืนยัน
               </button>
             </div>
-            {otpMsg && <p className="text-xs text-gray-200 mt-2">{otpMsg}</p>}
-            <button
-              type="button"
-              disabled={otpBusy}
-              onClick={() => otpCall('resend')}
-              className="mt-3 text-xs text-orange-300 underline underline-offset-4 disabled:opacity-50"
-            >
+            {otpMsg && <p style={{ fontSize: 12.5, marginTop: 8 }}>{otpMsg}</p>}
+            <button type="button" disabled={otpBusy} onClick={() => otpCall('resend')} className="bs-link" style={{ marginTop: 8, fontSize: 12 }}>
               ไม่ได้รับ SMS? ขอรหัสใหม่
             </button>
           </div>
         ) : review ? (
-          <div className="mt-5 w-full bg-amber-500/10 border border-amber-500/40 text-amber-200 text-sm rounded-xl px-4 py-3 leading-relaxed">
+          <div className="bs-alert warn">
             ได้รับเงินแล้ว ✅ ร้านกำลังตรวจสอบก่อนส่งเหรียญ (ไอดีใหม่หรือเบอร์ผู้โอนใหม่ ตรวจครั้งแรกครั้งเดียว)
             <br />ทักแชทเพจ BOSS STORE พร้อมรหัส <b>#{pending.id}</b> จะได้รับเหรียญเร็วขึ้น
           </div>
         ) : (
           <>
             {pending.verified === false && (
-              <div className="mt-5 w-full bg-sky-500/10 border border-sky-500/30 text-sky-200 text-xs rounded-xl px-4 py-3 leading-relaxed">
+              <div className="bs-alert info" style={{ fontSize: 12.5, marginBottom: 12 }}>
                 {pending.amount > 300
                   ? 'ไอดีนี้เติมครั้งแรก ยอดเกิน 300 บาท: ร้านจะตรวจสอบก่อนส่งเหรียญ (ทักแชทเพจพร้อมรหัสออเดอร์เพื่อให้เร็วขึ้น)'
                   : 'ไอดีนี้เติมครั้งแรก: หลังโอน จะมีรหัสยืนยันทาง SMS ไปที่เบอร์ทรูมันนี่ที่ใช้โอน กรอกในหน้านี้เพื่อรับเหรียญ'}
                 {' '}(ป้องกันมิจฉาชีพ ทำครั้งแรกครั้งเดียว) ครั้งต่อไปจากเบอร์เดิมได้รับเหรียญทันที
               </div>
             )}
-            <a
-              href={pending.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-5 w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2"
-            >
+            <ol className="bs-steps">
+              <li><i>1</i><span>กดปุ่มด้านล่าง เปิดแอปทรูมันนี่ (ยอดและข้อความกรอกไว้ให้แล้ว)</span></li>
+              <li><i>2</i><span>ห้ามแก้<b>จำนวนเงิน</b>และ<b>ข้อความ</b> ในหน้าโอน ไม่งั้นระบบส่งเหรียญอัตโนมัติไม่ได้</span></li>
+              <li><i>3</i><span>โอนเสร็จ กลับมาหน้านี้ เหรียญเข้าอัตโนมัติ</span></li>
+            </ol>
+            <a href={pending.url} target="_blank" rel="noopener noreferrer" className="bs-btn tmn" style={{ marginTop: 18 }}>
               เปิดแอป TrueMoney เพื่อโอน <ArrowRight className="w-4 h-4" />
             </a>
-            <p className="mt-4 text-xs text-gray-400">ใช้คอมอยู่? สแกน QR นี้ด้วยกล้องมือถือ</p>
-            <div className="mt-2 bg-white rounded-2xl p-3">
-              <canvas ref={canvasRef} className="w-64 h-64 sm:w-72 sm:h-72 block" />
+            <p className="bs-cap" style={{ marginTop: 14 }}>ใช้คอมอยู่? สแกน QR นี้ด้วยกล้องมือถือ</p>
+            <div className="bs-qr" style={{ marginTop: 4 }}>
+              <canvas ref={canvasRef} className="w-56 h-56 sm:w-60 sm:h-60 block" />
             </div>
-            <div className="mt-4 w-full bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs rounded-xl px-4 py-3 leading-relaxed">
-              ⚠️ ห้ามแก้ไข<b>จำนวนเงิน</b>และ<b>ข้อความ</b>ที่กรอกไว้ให้ในหน้าโอน ไม่งั้นระบบส่งเหรียญอัตโนมัติไม่ได้
-            </div>
-            <p className="mt-5 text-sm text-gray-200 flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin text-orange-400" />
-              รอการโอนเงิน...
+            <p className="bs-sub" style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', marginTop: 12 }}>
+              <Loader2 className="w-5 h-5 bs-spin" /> รอการโอนเงิน...
             </p>
           </>
         )}
+      </div>
 
-        <div className="mt-4 flex gap-6 text-sm">
-          {paid ? (
-            <button onClick={onDone} className="text-orange-300 underline underline-offset-4 hover:text-orange-200">
-              เติมเพิ่ม
-            </button>
-          ) : (
-            <button
-              onClick={() => { savePending(null); onCancel(); }}
-              className="text-orange-300 underline underline-offset-4 hover:text-orange-200"
-            >
-              ยกเลิก / แก้ไขยอด
-            </button>
-          )}
-        </div>
-        {!paid && (
-          <p className="mt-3 text-xs text-gray-500 text-center">
-            ถ้าโอนแล้วแต่ไม่ขึ้นภายใน 3 นาที กด "ดูรหัสรายการ" ด้านบน แล้วทักแชทเพจ
-          </p>
+      <div className="bs-row" style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+        {paid ? (
+          <>
+            <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
+            <button onClick={onDone} className="bs-link">เติมเพิ่ม</button>
+          </>
+        ) : (
+          <>
+            <span>โอนแล้วไม่ขึ้นใน 3 นาที ทักเพจพร้อมรหัสด้านบน</span>
+            <button onClick={() => { savePending(null); onCancel(); }} className="bs-link muted">ยกเลิก</button>
+          </>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -936,17 +925,17 @@ export default function App() {
   const [openMethods, setOpenMethods] = useState(() => Object.fromEntries(METHODS.map((m) => [m.key, true])));
   // ติดต่อคอมร้านไม่ได้ (ไฟดับ/เน็ตหลุด) → ปิดรับเงินทั้งหมด กันลูกค้าจ่ายแล้วไม่ได้เหรียญ
   const [offline, setOffline] = useState(false);
-  // โหมดสว่าง/มืด (จำค่าไว้ในเครื่อง · เริ่มต้นโหมดมืดเหมือนเดิม)
+  // โหมดมืด/สว่าง (ร้านสั่ง 12 พ.ย.: เริ่มต้นโหมดมืด · จำค่าที่ลูกค้าเลือกไว้ในเครื่อง)
   const [theme, setTheme] = useState(() => {
     try {
       const q = new URLSearchParams(window.location.search).get('theme');
       if (q === 'light' || q === 'dark') return q;
-      return localStorage.getItem('bossstore_theme') === 'light' ? 'light' : 'dark';
+      return localStorage.getItem('bossstore_theme2') === 'light' ? 'light' : 'dark';
     } catch { return 'dark'; }
   });
   useEffect(() => {
-    document.documentElement.classList.toggle('theme-light', theme === 'light');
-    try { localStorage.setItem('bossstore_theme', theme); } catch { /* ข้ามได้ */ }
+    document.documentElement.classList.toggle('theme-dark', theme === 'dark');
+    try { localStorage.setItem('bossstore_theme2', theme); } catch { /* ข้ามได้ */ }
   }, [theme]);
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
@@ -1011,11 +1000,19 @@ export default function App() {
   };
 
   // 12 พ.ย. ค้นล่วงหน้า: ลูกค้าหยุดพิมพ์ไอดี ~1 วิ → เริ่มค้นเลย (ระหว่างกรอกยอดเงิน) กด "สร้าง QR" แล้วชื่อขึ้นทันที
+  // ดีไซน์ใหม่: โชว์ผลในช่องไอดีด้วย (✓ ตรวจแล้ว / ไม่พบในเกม)
+  const [idCheck, setIdCheck] = useState({ key: '', status: '' });
   useEffect(() => {
     if (!CHECK_ID_GAMES.includes(game) || !/^\d{6,12}$/.test(gameId)) return undefined;
-    const t = setTimeout(() => lookupPlayer(game, gameId), 1000);
-    return () => clearTimeout(t);
+    const key = `${game}:${gameId}`;
+    let alive = true;
+    const t = setTimeout(() => {
+      setIdCheck({ key, status: 'checking' });
+      lookupPlayer(game, gameId).then((d) => { if (alive) setIdCheck({ key, status: d.status }); });
+    }, 1000);
+    return () => { alive = false; clearTimeout(t); };
   }, [game, gameId]);
+  const idState = idCheck.key === `${game}:${gameId}` ? idCheck.status : '';
 
   // เปิดป๊อปอัปยืนยัน → ใช้ผลค้น (ที่ค้นล่วงหน้าไว้/กำลังค้นอยู่) ถามไม่ได้/ช้า → skip = ไปต่อได้เหมือนเดิม
   useEffect(() => {
@@ -1089,144 +1086,105 @@ export default function App() {
     setLoading(false);
   };
 
-  if (pending) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0b0f19] to-[#1b1340] text-white flex flex-col items-center py-10 px-4">
-        <style>{THEME_CSS}</style>
-        <ThemeToggle theme={theme} onToggle={toggleTheme} />
-        {pending.method === 'truemoney' ? (
-          <TrueMoneyCard
-            pending={pending}
-            onDone={() => { savePending(null); setPending(null); setCustomAmount(''); }}
-            onCancel={() => setPending(null)}
-          />
-        ) : pending.method === 'promptpay_bank' ? (
-          <BankPromptPayCard
-            pending={pending}
-            onDone={() => { savePending(null); setPending(null); setCustomAmount(''); }}
-            onCancel={() => setPending(null)}
-          />
-        ) : (
-          <PaymentCard
-            pending={pending}
-            onDone={() => { savePending(null); setPending(null); setCustomAmount(''); }}
-            onCancel={() => setPending(null)}
-          />
-        )}
+  const done = () => { savePending(null); setPending(null); setCustomAmount(''); };
+  const shell = (children, caption) => (
+    <div className="bs-page">
+      <style>{STYLE_CSS}</style>
+      <div className="bs-wrap">
+        {caption && <p className="bs-cap">{caption}</p>}
+        <div className="bs-card">
+          <Header theme={theme} onToggle={toggleTheme} />
+          {children}
+        </div>
       </div>
+    </div>
+  );
+
+  if (pending) {
+    return shell(
+      pending.method === 'truemoney' ? (
+        <TrueMoneyCard pending={pending} onDone={done} onCancel={() => setPending(null)} />
+      ) : pending.method === 'promptpay_bank' ? (
+        <BankPromptPayCard pending={pending} onDone={done} onCancel={() => setPending(null)} />
+      ) : (
+        <PaymentCard pending={pending} onDone={done} onCancel={() => setPending(null)} />
+      ),
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center py-10 px-4">
-      <style>{THEME_CSS}</style>
-      <ThemeToggle theme={theme} onToggle={toggleTheme} />
+  const presets = [MIN_BAHT, 50, 100, 300, 500];
+  const methodSub = { promptpay: 'สแกน QR แอปธนาคาร แล้วอัปโหลดสลิป', truemoney: 'เปิดแอปจ่ายในคลิกเดียว' };
+
+  return shell(
+    <>
       {/* ป๊อปอัปเตือนให้ตรวจไอดีก่อนชำระเงิน */}
       {confirming && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-title"
-          onClick={() => setConfirming(false)}
-        >
-          <div
-            className="w-full max-w-sm bg-[#161a2b] border border-yellow-500/40 rounded-2xl p-6 shadow-2xl text-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-4xl">⚠️</div>
-            <h2 id="confirm-title" className="mt-2 text-lg font-bold text-yellow-400">
-              โปรดตรวจสอบไอดีของลูกค้าให้ถูกต้อง
-            </h2>
-            <p className="mt-1 text-xs text-gray-400">ถ้าไอดีผิด เหรียญจะถูกส่งไปไอดีอื่นและเรียกคืนไม่ได้</p>
+        <div className="bs-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={() => setConfirming(false)}>
+          <div className="bs-card" onClick={(e) => e.stopPropagation()}>
+            <h2 id="confirm-title" className="bs-h2">ตรวจไอดีให้ถูกก่อนจ่าย</h2>
+            <p className="bs-sub" style={{ marginTop: 4 }}>ถ้าไอดีผิด เหรียญจะถูกส่งไปไอดีอื่นและเรียกคืนไม่ได้</p>
 
-            <div className="mt-4 bg-[#22273a] rounded-xl py-3">
-              <p className="text-xs text-gray-400">ไอดีผู้เล่น</p>
-              <p className="text-3xl font-bold tracking-wider text-yellow-300 mt-1">{gameId}</p>
+            <div className="bs-qrbox" style={{ marginTop: 14, textAlign: 'center', background: 'var(--card2)' }}>
+              <div className="bs-muted" style={{ fontSize: 12 }}>ไอดีผู้เล่น {gameInfo.name}</div>
+              <div className="bs-idbig" style={{ marginTop: 4 }}>{gameId}</div>
             </div>
+
             {playerCheck.status === 'checking' && (
-              <div className="mt-3 bg-[#22273a] rounded-xl px-3 py-3 text-sm text-gray-300" role="status">
-                <span className="inline-block animate-spin mr-2">⏳</span>
-                กำลังค้นหาไอดีนี้ในเกม (ไม่เกิน 20 วินาที)...
+              <div className="bs-alert info" style={{ marginTop: 10, display: 'flex', gap: 8 }} role="status">
+                <Loader2 className="w-5 h-5 bs-spin shrink-0" /> กำลังค้นหาไอดีนี้ในเกม (ไม่เกิน 20 วินาที)...
               </div>
             )}
             {playerCheck.status === 'found' && (
-              <div className="mt-3 bg-emerald-500/10 border border-emerald-400/60 rounded-xl px-3 py-3">
-                <p className="text-sm font-bold text-emerald-300">✅ เจอไอดีนี้ในเกม — ใช่ตัวละครของคุณไหม?</p>
-                <img src={playerCheck.image} alt={`ตัวละครในเกม ไอดี ${gameId}`} className="mt-2 mx-auto w-full max-w-[300px] rounded-lg" />
-                <p className="text-xs text-gray-300 mt-2">ถ้าไม่ใช่ชื่อตัวละครของคุณ กด "แก้ไขไอดี"</p>
+              <div className="bs-alert good" style={{ marginTop: 10 }}>
+                <b>✓ เจอไอดีนี้ในเกม — ใช่ตัวละครของคุณไหม?</b>
+                <img src={playerCheck.image} alt={`ตัวละครในเกม ไอดี ${gameId}`} className="mx-auto w-full max-w-[300px] rounded-lg" style={{ marginTop: 8 }} />
+                <div className="bs-muted" style={{ fontSize: 12, marginTop: 6 }}>ถ้าไม่ใช่ชื่อตัวละครของคุณ กด "แก้ไขไอดี"</div>
               </div>
             )}
             {playerCheck.status === 'not_found' && (
-              <div className="mt-3 bg-red-500/15 border border-red-500/60 rounded-xl px-3 py-3 text-left">
-                <p className="text-sm font-bold text-red-300">❌ ไม่พบไอดี {gameId} ในเกม {gameInfo.name}</p>
-                <p className="text-xs text-red-200 mt-1 leading-relaxed">
+              <div className="bs-alert bad" style={{ marginTop: 10 }}>
+                <b>✗ ไม่พบไอดี {gameId} ในเกม {gameInfo.name}</b>
+                <div style={{ fontSize: 12.5, marginTop: 4 }}>
                   ตัวเลขอาจขาด เกิน หรือสลับกัน กด "แก้ไขไอดี" แล้วคัดลอกไอดีจากหน้าโปรไฟล์ในเกมมาวางอีกครั้ง
-                </p>
+                </div>
               </div>
             )}
             {wrongGameHint && (
-              <div className="mt-3 bg-red-500/15 border border-red-500/50 rounded-xl px-3 py-2.5 text-left">
-                <p className="text-sm font-bold text-red-300">⚠️ เลือกเกม Siam แต่ไอดีมี {gameId.length} หลัก</p>
-                <p className="text-xs text-red-200 mt-1 leading-relaxed">
-                  ไอดี Siam ปกติมี 7 หลัก ไอดีนี้น่าจะเป็นของ <b>Royal</b> ถ้าจ่ายผิดเกม ระบบส่งเหรียญไม่ได้
-                  กด "แก้ไขไอดี" แล้วเลือกเกมให้ถูก
-                </p>
+              <div className="bs-alert bad" style={{ marginTop: 10 }}>
+                <b>⚠️ เลือกเกม Siam แต่ไอดีมี {gameId.length} หลัก</b>
+                <div style={{ fontSize: 12.5, marginTop: 4 }}>
+                  ไอดี Siam ปกติมี 7 หลัก ไอดีนี้น่าจะเป็นของ <b>Royal</b> ถ้าจ่ายผิดเกม ระบบส่งเหรียญไม่ได้ กด "แก้ไขไอดี" แล้วเลือกเกมให้ถูก
+                </div>
               </div>
             )}
-            <p className="mt-3 text-sm text-gray-300">
-              เกม <span className="font-bold text-yellow-300">{gameInfo.name}</span> ·{' '}
-              ยอด <span className="font-bold text-white">{baht.toLocaleString()} บาท</span> ·{' '}
-              <span className="text-pink-400 font-bold">{formatChips(chipsAmount, game)} เหรียญ</span> ·{' '}
-              {method === 'truemoney' ? 'TrueMoney' : 'PromptPay'}
-            </p>
+
+            <div className="bs-row" style={{ marginTop: 12, justifyContent: 'center', flexWrap: 'wrap', gap: '4px 10px' }}>
+              <span>{gameInfo.name}</span>·<span><b className="bs-ink">{baht.toLocaleString()} บาท</b></span>·
+              <span className="bs-gold" style={{ fontWeight: 700 }}>{formatChips(chipsAmount, game)} เหรียญ</span>·
+              <span>{method === 'truemoney' ? 'TrueMoney' : 'พร้อมเพย์'}</span>
+            </div>
 
             {method !== 'truemoney' && (
-              <div className="mt-4 bg-emerald-500/10 border border-emerald-400/50 rounded-xl px-3 py-3 text-left">
-                <p className="text-sm font-bold text-emerald-300">📎 โอนแล้วต้องกลับมาหน้านี้เพื่ออัปโหลดสลิป</p>
-                <p className="text-xs text-gray-300 mt-1 leading-relaxed">
-                  ระบบจะส่งเหรียญหลังตรวจสลิปเท่านั้น ถ้าไม่อัปโหลดสลิป จะยังไม่ได้รับเหรียญ
-                </p>
+              <div className="bs-alert warn" style={{ marginTop: 10 }}>
+                <b>📎 โอนแล้วต้องกลับมาหน้านี้เพื่ออัปโหลดสลิป</b>
+                <div style={{ fontSize: 12.5, marginTop: 2 }}>ระบบส่งเหรียญหลังตรวจสลิปเท่านั้น ไม่อัปโหลดสลิป = ยังไม่ได้รับเหรียญ</div>
               </div>
             )}
 
-            <div className="mt-5 flex flex-col gap-2">
+            <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
               {playerCheck.status === 'not_found' ? (
-                <button
-                  type="button"
-                  onClick={() => setConfirming(false)}
-                  autoFocus
-                  className="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white font-bold py-3 rounded-xl transition"
-                >
-                  แก้ไขไอดี
-                </button>
+                <button type="button" onClick={() => setConfirming(false)} autoFocus className="bs-btn primary">แก้ไขไอดี</button>
               ) : (
                 <>
-                  <button
-                    type="button"
-                    onClick={createPayment}
-                    disabled={playerCheck.status === 'checking'}
-                    autoFocus
-                    className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 disabled:opacity-50 disabled:cursor-wait text-white font-bold py-3 rounded-xl transition"
-                  >
+                  <button type="button" onClick={createPayment} disabled={playerCheck.status === 'checking'} autoFocus className="bs-btn primary">
                     {playerCheck.status === 'checking' ? 'กำลังค้นหาไอดี...'
                       : playerCheck.status === 'found' ? 'ใช่ ตัวละครนี้ ดำเนินการต่อ' : 'ไอดีถูกต้อง ดำเนินการต่อ'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirming(false)}
-                    className="w-full bg-[#1a243f] border border-gray-700 hover:border-gray-500 text-gray-200 py-3 rounded-xl transition"
-                  >
-                    แก้ไขไอดี
-                  </button>
+                  <button type="button" onClick={() => setConfirming(false)} className="bs-btn ghost">แก้ไขไอดี</button>
                 </>
               )}
               {playerCheck.status === 'not_found' && (
-                <button
-                  type="button"
-                  onClick={createPayment}
-                  className="mt-1 text-xs text-gray-400 underline underline-offset-4 hover:text-gray-200"
-                >
+                <button type="button" onClick={createPayment} className="bs-link muted" style={{ fontSize: 12 }}>
                   ฉันมั่นใจว่าไอดีถูกต้อง ดำเนินการต่อ
                 </button>
               )}
@@ -1235,210 +1193,141 @@ export default function App() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="w-full max-w-md bg-[#131b2e] border border-gray-800 rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold text-yellow-400 flex items-center gap-2">
-            <ShoppingBag className="w-6 h-6" /> BOSS STORE
-          </h1>
-          <span className="text-xs bg-purple-600/30 text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full">
-            ⚡ ระบบอัตโนมัติ 24 ชม.
-          </span>
+      <h1 className="bs-h1">เติมเหรียญ<br />เข้าไอดีในเกม</h1>
+      <p className="bs-sub">เลือกเกม กรอกไอดี จ่ายผ่านพร้อมเพย์หรือทรูมันนี่ รับเหรียญใน 2 นาที</p>
+
+      <form onSubmit={handleCheckout} style={{ marginTop: 18, display: 'grid', gap: 18 }}>
+        {/* เลือกเกม */}
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="เลือกเกม">
+          {GAME_KEYS.map((key) => {
+            const on = game === key;
+            const open = openGames[key];
+            return (
+              <button key={key} type="button" role="radio" aria-checked={on && open} disabled={!open}
+                      onClick={() => { setGame(key); setShowPackages(false); }} className="bs-opt">
+                {on && open && <span className="bs-tag">เลือกอยู่</span>}
+                <b><span className="bs-gdot" style={{ background: key === 'siam' ? 'var(--siam)' : 'var(--royal)' }} />{GAMES[key].short}</b>
+                <span className="s" style={!open ? { color: 'var(--warn)' } : undefined}>
+                  {open ? `เริ่ม ${minBaht(key)} บาท` : 'ปิดชั่วคราว'}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* เตือนโกงสามเส้า: เหยื่อที่ถูกส่งลิงก์ร้านมาให้จ่ายค่าของอย่างอื่น ต้องเห็นก่อนจ่าย */}
-        {/* ร้านขอ 8 พ.ย.: บรรทัดเดียวพอ ใจความ = ไอดีไม่ใช่ของตัวเอง อย่าจ่าย */}
-        <div className="mb-5 bg-red-500/10 border border-red-500/40 rounded-xl px-3 py-2.5 text-[clamp(11px,3.4vw,13px)] text-red-200 text-center" role="note">
-          ⚠️ <b className="text-red-300">ไอดีเกมไม่ใช่ของคุณ ห้ามจ่าย = มิจฉาชีพ</b>
-        </div>
-
-        <form onSubmit={handleCheckout} className="space-y-5">
-          {/* เลือกเกม */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">1. เลือกเกม</label>
-            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="เลือกเกม">
-              {GAME_KEYS.map((key) => {
-                const on = game === key;
-                const open = openGames[key];
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    role="radio"
-                    aria-checked={on}
-                    disabled={!open}
-                    onClick={() => { setGame(key); setShowPackages(false); }}
-                    className={`rounded-xl px-3 py-2.5 border transition text-center ${
-                      !open
-                        ? 'bg-[#1a243f] border-gray-800 opacity-50 cursor-not-allowed'
-                        : on ? 'bg-yellow-500/15 border-yellow-400' : 'bg-[#1a243f] border-gray-700 hover:border-gray-500'
-                    }`}
-                  >
-                    <span className={`block font-bold ${on && open ? 'text-yellow-300' : 'text-gray-200'}`}>{GAMES[key].name}</span>
-                    <span className={`block text-xs mt-0.5 ${open ? 'text-gray-400' : 'text-amber-300'}`}>
-                      {open ? `ขั้นต่ำ ${minBaht(key)} บาท` : 'ปิดชั่วคราว'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ช่องกรอกไอดีเกม */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              2. ไอดีผู้เล่น {gameInfo.name} (Game ID)
-            </label>
+        {/* ไอดีเกม */}
+        <div>
+          <label htmlFor="gameid" className="bs-label">ไอดีในเกม {gameInfo.short}<small>ตัวเลข 4–12 หลัก</small></label>
+          <div style={{ position: 'relative' }}>
             <input
-              type="text"
-              inputMode="numeric"
-              maxLength={12}
-              value={gameId}
+              id="gameid" type="text" inputMode="numeric" maxLength={12} value={gameId}
               onChange={(e) => setGameId(e.target.value.replace(/\D/g, ''))}
-              placeholder="เช่น 8129121"
-              className="w-full bg-[#1a243f] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition"
-              required
+              placeholder="เช่น 8129121" className="bs-input" style={{ paddingRight: 110 }} required
             />
-            {wrongGameHint && (
-              <p className="mt-2 text-xs text-amber-300 leading-relaxed">
-                ⚠️ ไอดี Siam ปกติมี 7 หลัก ไอดีนี้มี {gameId.length} หลัก อาจเป็นไอดี <b>Royal</b> ตรวจสอบเกมที่เลือกอีกครั้ง
-              </p>
-            )}
+            {idState === 'checking' && <span className="bs-check bs-muted">กำลังตรวจ…</span>}
+            {idState === 'found' && <span className="bs-check" style={{ color: 'var(--good)' }}>✓ ตรวจแล้ว</span>}
+            {idState === 'not_found' && <span className="bs-check" style={{ color: 'var(--bad)' }}>✗ ไม่พบในเกม</span>}
           </div>
-
-          {/* ช่องกรอกจำนวนเงินเอง */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              3. ระบุจำนวนเงิน (บาท)
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                value={customAmount}
-                onChange={(e) => setCustomAmount(e.target.value)}
-                placeholder={`ขั้นต่ำ ${MIN_BAHT}`}
-                className="w-full bg-[#1a243f] border border-gray-700 rounded-xl pl-4 pr-12 py-3 text-white text-lg font-semibold focus:outline-none focus:border-purple-500 transition"
-                required
-                min={MIN_BAHT}
-                max={MAX_BAHT}
-                step="1"
-              />
-              <span className="absolute right-4 top-3.5 text-gray-400 font-bold">฿</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-2">
-              💎 จำนวนเหรียญที่จะได้รับ: <span className="text-pink-400 font-bold">{formatChips(chipsAmount, game)} เหรียญ</span>
-              <span className="block mt-1 text-gray-500">
-                ขั้นต่ำ {MIN_BAHT} บาท
-                {chipsAmount ? ` · ${rateNote(baht, game)}` : ''}
-              </span>
-            </p>
-
-            {/* เมนูเปิดดูแพ็กเกจ */}
-            <button
-              type="button"
-              onClick={() => setShowPackages((v) => !v)}
-              className="mt-3 w-full flex items-center justify-between bg-[#1a243f] border border-gray-700 hover:border-purple-500 rounded-xl px-4 py-2.5 text-sm text-gray-200 transition"
-              aria-expanded={showPackages}
-            >
-              <span>📋 ดูแพ็กเกจราคา {gameInfo.short} ({PACKAGES.length} แพ็กเกจ)</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showPackages ? 'rotate-180' : ''}`} />
-            </button>
-            {showPackages && (
-              <div className="mt-2 grid grid-cols-1 min-[340px]:grid-cols-2 gap-2">
-                {PACKAGES.map((p) => {
-                  const selected = p.baht === baht;
-                  return (
-                    <button
-                      key={p.baht}
-                      type="button"
-                      onClick={() => { setCustomAmount(String(p.baht)); setShowPackages(false); }}
-                      className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm border transition ${
-                        selected
-                          ? 'bg-purple-600/30 border-purple-400'
-                          : 'bg-[#1a243f] border-gray-700 hover:border-purple-500'
-                      }`}
-                    >
-                      <span className="font-semibold text-pink-300">{formatChips(p.chips, game)}</span>
-                      <span className="font-bold text-yellow-400">{p.baht}฿</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* เลือกช่องทางชำระเงิน */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">4. ช่องทางชำระเงิน</label>
-            <div className="grid grid-cols-2 gap-2" role="radiogroup">
-              {METHODS.map((m) => {
-                const open = openMethods[m.key];
-                const on = method === m.key && open;
-                const tmn = m.key === 'truemoney';
-                return (
-                  <button
-                    key={m.key}
-                    type="button"
-                    role="radio"
-                    aria-checked={on}
-                    disabled={!open}
-                    onClick={() => setMethod(m.key)}
-                    className={`rounded-xl px-3 py-2.5 text-left border transition ${
-                      !open
-                        ? 'bg-[#1a243f] border-gray-800 opacity-50 cursor-not-allowed'
-                        : on
-                          ? tmn ? 'bg-orange-500/20 border-orange-400' : 'bg-purple-600/30 border-purple-400'
-                          : 'bg-[#1a243f] border-gray-700 hover:border-gray-500'
-                    }`}
-                  >
-                    <span className={`block font-bold text-sm ${tmn ? 'text-orange-300' : 'text-indigo-200'}`}>{m.label}</span>
-                    <span className={`block text-xs mt-0.5 ${open ? 'text-gray-400' : 'text-amber-300'}`}>
-                      {open ? m.sub : 'ปิดปรับปรุงชั่วคราว'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ปุ่มกดชำระเงิน */}
-          {offline ? (
-            <p className="text-sm text-amber-300 text-center">
-              ขออภัย ระบบเติมเหรียญปิดชั่วคราว (กำลังแก้ไข) กรุณาลองใหม่ภายหลัง ยังไม่มีการเรียกเก็บเงิน
-            </p>
-          ) : !gameOpen ? (
-            <p className="text-sm text-amber-300 text-center">ขออภัย ตอนนี้ปิดรับออเดอร์ทุกเกมชั่วคราว</p>
-          ) : !methodOpen && (
-            <p className="text-sm text-amber-300 text-center">ขออภัย ช่องทางชำระเงินปิดปรับปรุงชั่วคราว กรุณาลองใหม่ภายหลัง</p>
+          {idState === 'not_found' && (
+            <p style={{ marginTop: 6, fontSize: 12.5, color: 'var(--bad)' }}>ไม่พบไอดีนี้ในเกม {gameInfo.short} ตรวจตัวเลขอีกครั้ง</p>
           )}
-          <button
-            type="submit"
-            disabled={loading || offline || !gameOpen || !methodOpen}
-            className={`w-full text-white font-medium py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50 ${
-              method === 'truemoney'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400'
-                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500'
-            }`}
-          >
-            {loading ? (
-              method === 'truemoney' ? 'กำลังสร้างลิงก์...' : 'กำลังสร้าง QR...'
-            ) : method === 'truemoney' ? (
-              <>
-                <CreditCard className="w-5 h-5" /> ชำระผ่าน TrueMoney <ArrowRight className="w-4 h-4" />
-              </>
-            ) : (
-              <>
-                <CreditCard className="w-5 h-5" /> สร้าง QR ชำระเงิน PromptPay <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center text-xs text-gray-500 flex items-center justify-center gap-1">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          {method === 'truemoney' ? 'ระบบตรวจสอบยอดโอนกับ TrueMoney อัตโนมัติ' : 'ระบบตรวจสอบสลิปกับธนาคารอัตโนมัติ'}
+          {wrongGameHint && (
+            <p style={{ marginTop: 6, fontSize: 12.5, color: 'var(--warn)' }}>
+              ⚠️ ไอดี Siam ปกติมี 7 หลัก ไอดีนี้มี {gameId.length} หลัก อาจเป็นไอดี <b>Royal</b> ตรวจสอบเกมที่เลือกอีกครั้ง
+            </p>
+          )}
         </div>
+
+        {/* ยอดเงิน */}
+        <div>
+          <div className="bs-amount">
+            <div className="top"><label htmlFor="amount">ยอดที่ต้องการเติม</label><span>พิมพ์เองได้</span></div>
+            <input
+              id="amount" type="number" inputMode="numeric" value={customAmount}
+              onChange={(e) => setCustomAmount(e.target.value)} placeholder={String(MIN_BAHT)}
+              required min={MIN_BAHT} max={MAX_BAHT} step="1" aria-describedby="amount-coins"
+            />
+            <div className="unit">บาท</div>
+            <div className="coins" id="amount-coins">
+              {chipsAmount ? `${formatChips(chipsAmount, game)} เหรียญ` : `ขั้นต่ำ ${MIN_BAHT} บาท`}
+              {chipsAmount ? <div className="note">{rateNote(baht, game)}</div> : null}
+            </div>
+            <div className="bs-chips">
+              {presets.map((v) => (
+                <button key={v} type="button" className="bs-chipbtn" aria-pressed={baht === v} onClick={() => setCustomAmount(String(v))}>
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button type="button" onClick={() => setShowPackages((v) => !v)} className="bs-link muted"
+                  style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 4 }} aria-expanded={showPackages}>
+            ดูแพ็กเกจราคา {gameInfo.short} ทั้งหมด ({PACKAGES.length} แพ็กเกจ)
+            <ChevronDown className={`w-4 h-4 transition-transform ${showPackages ? 'rotate-180' : ''}`} />
+          </button>
+          {showPackages && (
+            <div className="bs-pkg">
+              {PACKAGES.map((p) => (
+                <button key={p.baht} type="button" aria-pressed={p.baht === baht}
+                        onClick={() => { setCustomAmount(String(p.baht)); setShowPackages(false); }}>
+                  <span>{formatChips(p.chips, game)}</span><b>{p.baht}฿</b>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ช่องทางชำระเงิน */}
+        <div className="bs-methods" role="radiogroup" aria-label="ช่องทางชำระเงิน">
+          {METHODS.map((m) => {
+            const open = openMethods[m.key];
+            const on = method === m.key && open;
+            return (
+              <button key={m.key} type="button" role="radio" aria-checked={on} disabled={!open}
+                      onClick={() => setMethod(m.key)} className={`bs-method ${m.key === 'promptpay' ? 'pp' : ''}`}>
+                <span className="bs-radio" aria-hidden="true" />
+                <span>
+                  <b>{m.key === 'promptpay' ? 'พร้อมเพย์' : 'TrueMoney'}</b>
+                  <span className="s" style={!open ? { color: 'var(--warn)' } : undefined}>
+                    {open ? methodSub[m.key] : 'ปิดปรับปรุงชั่วคราว'}
+                  </span>
+                </span>
+                {m.key === 'promptpay' && open && <span className="bs-badge">เร็วสุด</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* เตือนโกงสามเส้า (ร้านขอ 8 พ.ย.: ใจความ = ไอดีไม่ใช่ของตัวเอง อย่าจ่าย) */}
+        <div className="bs-alert bad" role="note" style={{ display: 'flex', gap: 10 }}>
+          <span aria-hidden="true" style={{ fontSize: 16 }}>⚠️</span>
+          <span><b>ไอดีเกมไม่ใช่ของคุณ ห้ามจ่าย = มิจฉาชีพ</b><br />
+            <span style={{ fontSize: 12 }}>โอนแล้วเหรียญเข้าคนอื่น กู้คืนไม่ได้</span></span>
+        </div>
+
+        {offline ? (
+          <div className="bs-alert warn" style={{ textAlign: 'center' }}>
+            ขออภัย ระบบเติมเหรียญปิดชั่วคราว (กำลังแก้ไข) กรุณาลองใหม่ภายหลัง ยังไม่มีการเรียกเก็บเงิน
+          </div>
+        ) : !gameOpen ? (
+          <div className="bs-alert warn" style={{ textAlign: 'center' }}>ขออภัย ตอนนี้ปิดรับออเดอร์ทุกเกมชั่วคราว</div>
+        ) : !methodOpen && (
+          <div className="bs-alert warn" style={{ textAlign: 'center' }}>ขออภัย ช่องทางชำระเงินปิดปรับปรุงชั่วคราว กรุณาลองใหม่ภายหลัง</div>
+        )}
+
+        <button type="submit" disabled={loading || offline || !gameOpen || !methodOpen}
+                className={`bs-btn primary ${method === 'promptpay' ? 'pp' : ''}`}>
+          {loading
+            ? (method === 'truemoney' ? 'กำลังสร้างลิงก์...' : 'กำลังสร้าง QR...')
+            : method === 'truemoney' ? 'จ่ายผ่าน TrueMoney' : 'สร้าง QR พร้อมเพย์'}
+        </button>
+      </form>
+
+      <div className="bs-trust">
+        <span>ตรวจไอดีก่อนส่ง</span>
+        <span>{method === 'truemoney' ? 'ตรวจยอดกับ TrueMoney' : 'สลิปปลอมไม่ผ่าน'}</span>
+        <span>ทักเพจได้ 24 ชม.</span>
       </div>
-    </div>
+    </>,
   );
 }
