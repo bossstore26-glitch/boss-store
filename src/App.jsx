@@ -113,9 +113,10 @@ function QrPreview({ src, onClose }) {
 // รายการเก่าแบบ Stripe (pi_...) ไม่มีรหัสนี้ → ไม่แสดง
 // ร้านขอ 9 พ.ย.: ให้เห็นรหัสหลังจ่าย/อัปสลิปแล้วเท่านั้น (ทักเพจมาพร้อมรหัส = จ่ายแล้ว)
 // fallbackAt = เวลา(ms)ที่จะโผล่ปุ่ม "โอนแล้วแต่ยังไม่ขึ้น?" กันกรณีระบบแจ้งเงินเข้าช้า/หลุด
-function OrderCode({ id, visible, fallbackAt = 0 }) {
+function OrderCode({ id, visible, fallbackAt = 0, gameName = '', gameId = '' }) {
   const [revealed, setRevealed] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (visible || revealed || !fallbackAt) return undefined;
     const t = setInterval(() => setNow(Date.now()), 2000);
@@ -130,11 +131,38 @@ function OrderCode({ id, visible, fallbackAt = 0 }) {
       </button>
     );
   }
+  // ข้อความที่คัดลอก = บรรทัดบน ("เติม ... ให้ไอดี ...") + รหัสออเดอร์
+  const copyText = `เติม ${gameName} ให้ไอดี ${gameId} #${id}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = copyText;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch { /* ignore */ }
+      ta.remove();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
-    <p className="mt-2 text-sm text-gray-300 text-center">
-      รหัสรายการ <span className="font-bold text-white tracking-wider select-all">#{id}</span>
-      <span className="block text-xs text-gray-400">แจ้งรหัสนี้ที่เพจ BOSS STORE เมื่อเติมช้ากว่า 3 นาที</span>
-    </p>
+    <>
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+        <span className="text-sm text-gray-300">
+          รหัสออเดอร์ <span className="font-bold tracking-wider text-white select-all">#{id}</span>
+        </span>
+        <button
+          type="button"
+          onClick={copy}
+          className="rounded-lg bg-amber-400 px-2.5 py-1.5 text-xs font-bold text-slate-900 transition active:scale-95"
+        >
+          {copied ? 'คัดลอกแล้ว ✓' : 'คัดลอก'}
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-gray-400">แจ้งรหัสนี้ที่เพจ BOSS STORE เมื่อเติมช้ากว่า 3 นาที</p>
+    </>
   );
 }
 
@@ -319,7 +347,7 @@ async function slipToDataUrl(file) {
   }
 }
 
-// ปุ่มอัปโหลดสลิป: เด้ง + วงแสงกะพริบ (ใช้หลังสร้าง QR 1 นาที) ปิดเองถ้าเครื่องตั้ง "ลดการเคลื่อนไหว"
+// ปุ่มอัปโหลดสลิป: เด้ง + วงแสงกะพริบ (เริ่มทันทีที่เปิดหน้านี้) ปิดเองถ้าเครื่องตั้ง "ลดการเคลื่อนไหว"
 const NUDGE_CSS = `
 @keyframes upload-nudge-bounce { 0%, 100% { transform: translateY(0) } 12% { transform: translateY(-6px) } 24% { transform: translateY(0) } 34% { transform: translateY(-3px) } 44% { transform: translateY(0) } }
 @keyframes upload-nudge-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, .75) } 50% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0) } }
@@ -344,9 +372,9 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   }, []);
   const secondsLeft = Math.max(0, Math.ceil((qrDeadline - now) / 1000));
   const qrExpired = secondsLeft === 0;
-  // สร้าง QR ไปแล้วเกิน 10 วิ → ปุ่มอัปโหลดกะพริบ/เด้ง ดึงสายตา (ลูกค้าบางคนโอนแล้วไม่รู้ว่าต้องอัปโหลดสลิป)
+  // เอฟเฟกต์ปุ่มอัปโหลดเด้ง/กะพริบตั้งแต่เปิดหน้านี้เลย (ลูกค้าบางคนโอนแล้วไม่รู้ว่าต้องอัปโหลดสลิป)
   const qrCreatedMs = pending.qrExpiresAt ? (pending.qrExpiresAt - 10 * 60) * 1000 : 0;
-  const nudgeUpload = qrCreatedMs > 0 && now - qrCreatedMs > 10 * 1000;
+  const nudgeUpload = qrCreatedMs > 0;
 
   // ลูกค้าสลับไปแอปธนาคารแล้วกลับมา (หน้าเว็บถูกซ่อน ≥ 5 วิ) → ป๊อปอัปกลางจอพร้อมปุ่มเลือกสลิป
   const [returnPrompt, setReturnPrompt] = useState(false);
@@ -494,11 +522,14 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
       </div>
 
       <div className="px-6 py-6 flex flex-col items-center">
-        <div className="w-full bg-[#22273a] rounded-xl py-3 text-center">
-          เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
-          <span className="text-yellow-400 font-bold">{pending.gameId}</span>
+        <div className="w-full bg-[#22273a] rounded-xl py-3 px-4 text-center">
+          <div>
+            เติม <span className="font-bold">{gameOf(pending.game).name}</span> ให้ไอดี{' '}
+            <span className="text-yellow-400 font-bold">{pending.gameId}</span>
+          </div>
+          <OrderCode id={pending.id} visible={status !== 'idle' || !!msg}
+                     gameName={gameOf(pending.game).name} gameId={pending.gameId} />
         </div>
-        <OrderCode id={pending.id} visible={status !== 'idle' || !!msg} />
 
         <p className="mt-5 text-sm text-gray-300">ยอดโอน (ต้องตรงตามนี้)</p>
         <p className="text-3xl font-bold mt-1">
