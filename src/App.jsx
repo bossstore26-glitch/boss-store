@@ -377,8 +377,8 @@ html,body{background:var(--bg)!important}
 .bs-opt span.s{display:block;margin-top:3px;font-size:12px;color:var(--muted)}
 .bs-tag{position:absolute;top:-9px;right:10px;background:var(--ink);color:var(--card);font:600 10.5px/1 Prompt,sans-serif;padding:4px 8px;border-radius:999px}
 .bs-gdot{width:8px;height:8px;border-radius:50%;display:inline-block}
-.bs-input{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:14px 16px;color:var(--ink);
-  font:700 22px/1.2 Prompt,sans-serif;letter-spacing:.5px;outline:none;transition:border-color .15s}
+.bs-input{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:10px 14px;color:var(--ink);
+  font:700 18px/1.2 Prompt,sans-serif;letter-spacing:.5px;outline:none;transition:border-color .15s}
 .bs-input:focus{border-color:var(--ink)}
 .bs-input::placeholder{color:var(--soft);font-weight:500;letter-spacing:0}
 .bs-check{position:absolute;right:14px;top:50%;transform:translateY(-50%);font:600 12.5px/1 Prompt,sans-serif}
