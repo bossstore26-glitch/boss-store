@@ -358,6 +358,12 @@ html,body{background:var(--bg)!important}
 .bs-link:focus-visible,.bs-copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:12px}
 .bs-h1{font:800 clamp(27px,8vw,34px)/1.12 Prompt,sans-serif;color:var(--ink);letter-spacing:-.3px}
 .bs-h2{font:800 24px/1.15 Prompt,sans-serif;color:var(--ink)}
+.bs-titlerow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.bs-titlerow .bs-h1{flex:none;white-space:nowrap;font-size:clamp(24px,7.4vw,34px)}
+.bs-scam{flex:1 1 auto;min-width:0;max-width:170px;display:flex;gap:5px;align-items:flex-start;background:var(--bad-bg);
+  border:1px solid var(--bad-line);color:var(--bad);border-radius:14px;padding:8px 9px;margin-top:2px}
+.bs-scam b{font:700 11.5px/1.45 Prompt,sans-serif}
+@media (max-width:330px){.bs-titlerow{flex-direction:column}.bs-scam{max-width:none}}
 .bs-sub{margin-top:8px;font-size:13.5px;color:var(--muted);line-height:1.55}
 .bs-label{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 8px;font:600 14px/1.2 Prompt,sans-serif;color:var(--ink)}
 .bs-label small{font:400 12px/1 "IBM Plex Sans Thai",sans-serif;color:var(--muted)}
@@ -380,7 +386,7 @@ html.theme-dark .bs-amount{border:1px solid var(--line)}
 .bs-amount input{width:100%;background:transparent;border:0;outline:none;color:var(--dark-ink);text-align:center;
   font:800 46px/1.1 Prompt,sans-serif;padding:10px 0 2px;-moz-appearance:textfield}
 .bs-amount input::-webkit-outer-spin-button,.bs-amount input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.bs-amount input::placeholder{color:#5f574d}
+.bs-amount input::placeholder{color:#7d7468;font:600 24px/1.9 Prompt,sans-serif}
 .bs-amount .unit{text-align:center;font-size:13px;color:#b9b0a3;margin-top:-2px}
 .bs-amount .coins{margin-top:10px;padding-top:10px;border-top:1px dashed #4a433a;font:700 15px/1.3 Prompt,sans-serif;color:var(--gold)}
 .bs-amount .note{font-size:11.5px;color:#9b9284;margin-top:2px}
@@ -1193,7 +1199,14 @@ export default function App() {
         </div>
       )}
 
-      <h1 className="bs-h1">เติมเหรียญ<br />เข้าไอดีในเกม</h1>
+      <div className="bs-titlerow">
+        <h1 className="bs-h1">เติมเหรียญ<br />เข้าไอดีในเกม</h1>
+        {/* เตือนโกงสามเส้า (ร้านขอ 12 พ.ย. ย้ายมาที่ว่างขวาบน · ใจความเดิม 8 พ.ย.) */}
+        <div className="bs-scam" role="note">
+          <span aria-hidden="true">⚠️</span>
+          <b>ไอดีเกมไม่ใช่ของคุณ ห้ามจ่าย = มิจฉาชีพ</b>
+        </div>
+      </div>
       <p className="bs-sub">เลือกเกม กรอกไอดี จ่ายผ่านพร้อมเพย์หรือทรูมันนี่ รับเหรียญใน 2 นาที</p>
 
       <form onSubmit={handleCheckout} style={{ marginTop: 18, display: 'grid', gap: 18 }}>
@@ -1244,7 +1257,7 @@ export default function App() {
             <div className="top"><label htmlFor="amount">ยอดที่ต้องการเติม</label><span>พิมพ์เองได้</span></div>
             <input
               id="amount" type="number" inputMode="numeric" value={customAmount}
-              onChange={(e) => setCustomAmount(e.target.value)} placeholder={String(MIN_BAHT)}
+              onChange={(e) => setCustomAmount(e.target.value)} placeholder="พิมพ์จำนวนเงิน"
               required min={MIN_BAHT} max={MAX_BAHT} step="1" aria-describedby="amount-coins"
             />
             <div className="unit">บาท</div>
@@ -1296,13 +1309,6 @@ export default function App() {
               </button>
             );
           })}
-        </div>
-
-        {/* เตือนโกงสามเส้า (ร้านขอ 8 พ.ย.: ใจความ = ไอดีไม่ใช่ของตัวเอง อย่าจ่าย) */}
-        <div className="bs-alert bad" role="note" style={{ display: 'flex', gap: 10 }}>
-          <span aria-hidden="true" style={{ fontSize: 16 }}>⚠️</span>
-          <span><b>ไอดีเกมไม่ใช่ของคุณ ห้ามจ่าย = มิจฉาชีพ</b><br />
-            <span style={{ fontSize: 12 }}>โอนแล้วเหรียญเข้าคนอื่น กู้คืนไม่ได้</span></span>
         </div>
 
         {offline ? (
