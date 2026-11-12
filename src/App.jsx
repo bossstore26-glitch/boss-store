@@ -355,6 +355,86 @@ const NUDGE_CSS = `
 @media (prefers-reduced-motion: reduce) { .upload-nudge { animation: upload-nudge-glow 2s ease-out infinite; } }
 `;
 
+// ธีมสว่าง (ขาว-ฟ้า): สลับได้จากปุ่มมุมขวาบน · ค่าเริ่มต้นเป็นโหมดมืดเหมือนเดิม (จำค่าไว้ในเครื่อง)
+const THEME_CSS = `
+.theme-toggle{position:fixed;top:12px;right:12px;z-index:60;display:inline-flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:999px;cursor:pointer;font:600 12px/1 "Leelawadee UI","Tahoma",sans-serif;
+  color:#fff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .15s,color .15s,border-color .15s}
+.theme-toggle:hover{background:rgba(255,255,255,.18)}
+.theme-toggle:focus-visible{outline:2px solid #93C5FD;outline-offset:2px}
+.theme-light .theme-toggle{color:#0F172A;background:#fff;border-color:#D8E4F5;box-shadow:0 2px 10px rgba(15,23,42,.10)}
+.theme-light .theme-toggle:hover{background:#F2F7FF}
+
+/* พื้นผิว: ขาว-ฟ้า */
+.theme-light [class*="bg-[#0b0f19]"]{background-color:#F4F8FD !important}
+.theme-light [class*="from-[#0b0f19]"]{background-image:linear-gradient(to bottom,#F4F8FD,#E6EFFB) !important}
+.theme-light [class*="bg-[#131b2e]"]{background-color:#FFFFFF !important}
+.theme-light [class*="bg-[#161a2b]"]{background-color:#F8FBFF !important}
+.theme-light [class*="bg-[#1a243f]"]{background-color:#FFFFFF !important}
+.theme-light [class*="bg-[#22273a]"]{background-color:#F1F6FC !important}
+
+/* เส้นขอบ */
+.theme-light .border-gray-700{border-color:#DCE7F5 !important}
+.theme-light .border-gray-800{border-color:#E6EEF9 !important}
+.theme-light .border-gray-500{border-color:#C3D6EC !important}
+
+/* ตัวอักษร */
+.theme-light .text-white{color:#0F172A !important}
+.theme-light .text-gray-100{color:#0F172A !important}
+.theme-light .text-gray-200{color:#1E293B !important}
+.theme-light .text-gray-300{color:#334155 !important}
+.theme-light .text-gray-400{color:#64748B !important}
+.theme-light .text-gray-500{color:#94A3B8 !important}
+.theme-light .text-indigo-100{color:#E8F0FF !important}
+.theme-light .text-indigo-200{color:#1D4ED8 !important}
+.theme-light .text-indigo-300{color:#2563EB !important}
+.theme-light .text-indigo-400{color:#3B82F6 !important}
+.theme-light .text-yellow-300{color:#1D4ED8 !important}
+.theme-light .text-yellow-400{color:#1D4ED8 !important}
+.theme-light .text-pink-400{color:#1D4ED8 !important}
+.theme-light .text-purple-400{color:#2563EB !important}
+.theme-light .text-emerald-300{color:#047857 !important}
+.theme-light .text-emerald-400{color:#059669 !important}
+.theme-light .text-red-300{color:#B91C1C !important}
+.theme-light .text-red-400{color:#DC2626 !important}
+.theme-light .text-amber-300{color:#B45309 !important}
+.theme-light .text-orange-300{color:#B45309 !important}
+
+/* หัวการ์ด/ปุ่ม: ม่วง-เหลือง → ฟ้า (คงสี เขียว/ส้ม ที่สื่อความหมาย) */
+.theme-light .from-violet-500{background-image:linear-gradient(135deg,#3B82F6,#1D4ED8) !important}
+.theme-light .from-purple-600{background-image:linear-gradient(90deg,#3B82F6,#1D4ED8) !important}
+.theme-light [class*="bg-yellow-500/15"]{background-color:rgba(37,99,235,.10) !important}
+.theme-light [class*="border-yellow-400"]{border-color:#2563EB !important}
+.theme-light [class*="bg-purple-600/30"]{background-color:rgba(37,99,235,.12) !important}
+.theme-light [class*="border-purple-500"]{border-color:#93C5FD !important}
+.theme-light [class*="border-purple-400"]{border-color:#2563EB !important}
+
+/* ตัวอักษรขาวบนพื้นสีเข้ม/ปุ่มสี */
+.theme-light .from-violet-500,.theme-light .from-violet-500 *,
+.theme-light .from-emerald-500,.theme-light .from-emerald-500 *,
+.theme-light .from-emerald-600,.theme-light .from-emerald-600 *,
+.theme-light .from-purple-600,.theme-light .from-purple-600 *,
+.theme-light .from-orange-500,.theme-light .from-orange-500 *{color:#fff !important}
+
+.theme-light input::placeholder,.theme-light textarea::placeholder{color:#94A3B8}
+`;
+
+function ThemeToggle({ theme, onToggle }) {
+  const light = theme === 'light';
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="theme-toggle"
+      aria-label={light ? 'สลับเป็นโหมดมืด' : 'สลับเป็นโหมดสว่าง'}
+    >
+      <span aria-hidden="true">{light ? '☾' : '☀'}</span>
+      <span>{light ? 'โหมดมืด' : 'โหมดสว่าง'}</span>
+    </button>
+  );
+}
+
 // พร้อมเพย์ธนาคารร้าน: สแกนจ่าย → อัปโหลดสลิป → บอทตรวจสลิปกับธนาคาร (Slip2Go) แล้วส่งเหรียญ
 function BankPromptPayCard({ pending, onDone, onCancel }) {
   const canvasRef = useRef(null);
@@ -856,6 +936,19 @@ export default function App() {
   const [openMethods, setOpenMethods] = useState(() => Object.fromEntries(METHODS.map((m) => [m.key, true])));
   // ติดต่อคอมร้านไม่ได้ (ไฟดับ/เน็ตหลุด) → ปิดรับเงินทั้งหมด กันลูกค้าจ่ายแล้วไม่ได้เหรียญ
   const [offline, setOffline] = useState(false);
+  // โหมดสว่าง/มืด (จำค่าไว้ในเครื่อง · เริ่มต้นโหมดมืดเหมือนเดิม)
+  const [theme, setTheme] = useState(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('theme');
+      if (q === 'light' || q === 'dark') return q;
+      return localStorage.getItem('bossstore_theme') === 'light' ? 'light' : 'dark';
+    } catch { return 'dark'; }
+  });
+  useEffect(() => {
+    document.documentElement.classList.toggle('theme-light', theme === 'light');
+    try { localStorage.setItem('bossstore_theme', theme); } catch { /* ข้ามได้ */ }
+  }, [theme]);
+  const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
   useEffect(() => {
     let stopped = false;
@@ -999,6 +1092,8 @@ export default function App() {
   if (pending) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0b0f19] to-[#1b1340] text-white flex flex-col items-center py-10 px-4">
+        <style>{THEME_CSS}</style>
+        <ThemeToggle theme={theme} onToggle={toggleTheme} />
         {pending.method === 'truemoney' ? (
           <TrueMoneyCard
             pending={pending}
@@ -1024,6 +1119,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center py-10 px-4">
+      <style>{THEME_CSS}</style>
+      <ThemeToggle theme={theme} onToggle={toggleTheme} />
       {/* ป๊อปอัปเตือนให้ตรวจไอดีก่อนชำระเงิน */}
       {confirming && (
         <div
