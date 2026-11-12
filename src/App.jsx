@@ -575,9 +575,9 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         if (d.status === 'review') setStatus((s) => (s === 'checking' ? s : 'review'));
         // บอทกำลังรอธนาคารยืนยันสลิป (ตรวจซ้ำเองทุกไม่กี่นาที)
         if (d.status === 'checking') setStatus((s) => (s === 'checking' ? s : 'bankwait'));
-        // บอทตรวจซ้ำเองแล้วไม่ผ่าน → ให้อัปโหลดใหม่/ทักเพจ
+        // บอทตรวจซ้ำเองแล้วไม่ผ่าน / ร้านกด "ขอสลิปใหม่" (ร้านสั่ง 12 พ.ย.) → กลับไปหน้าอัปโหลด
         if (d.status === 'failed') {
-          setStatus((s) => (s === 'bankwait' ? 'idle' : s));
+          setStatus((s) => (s === 'bankwait' || s === 'review' ? 'idle' : s));
           setMsg(d.message || 'ตรวจสลิปไม่ผ่าน กรุณาทักแชทเพจ BOSS STORE พร้อมสลิป');
           setMsgBad(true);
         }
