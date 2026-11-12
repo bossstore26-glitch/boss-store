@@ -706,9 +706,8 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         ) : (
           <>
             <ol className="bs-steps">
-              <li><i>1</i><span>สแกน QR ด้วยแอปธนาคาร หรือบันทึกภาพไว้สแกนภายหลัง (ภายใน 10 นาที)</span></li>
-              <li><i>2</i><span>โอนยอด <b>{money} บาท</b> ให้ตรงตามที่แสดง</span></li>
-              <li><i>3</i><span>อัปโหลดสลิป ระบบตรวจและส่งเหรียญอัตโนมัติ</span></li>
+              <li><i>1</i><span>บันทึกภาพ QR แล้วสแกนโอน<br />ภายใน 10 นาที (ยอดต้องตรง <b>{money} บาท</b>)</span></li>
+              <li><i>2</i><span>กดปุ่ม "อัปโหลดสลิป" ด้านล่าง<br />เพื่อรับเหรียญอัตโนมัติ</span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
             <button
