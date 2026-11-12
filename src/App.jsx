@@ -363,6 +363,10 @@ html,body{background:var(--bg)!important}
 .bs-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .bs-logo{display:flex;align-items:center;gap:8px;font:800 17px/1 Prompt,sans-serif;letter-spacing:.2px;color:var(--ink)}
 .bs-logo i{width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-style:normal;font-size:12px}
+.bs-line{display:inline-flex;align-items:center;gap:2px;background:#06C755;color:#fff;border-radius:999px;padding:5px 9px 5px 7px;
+  font:800 11.5px/1 Prompt,sans-serif;letter-spacing:.3px;text-decoration:none;white-space:nowrap;flex:none}
+.bs-line span{font-size:13px;line-height:1}
+.bs-line:hover{filter:brightness(1.07)}
 .bs-pill{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 Prompt,sans-serif;color:var(--ink)}
 .bs-dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent)}
 .bs-moon{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--ink);
@@ -501,11 +505,19 @@ function ThemeToggle({ theme, onToggle }) {
   );
 }
 
-// หัวการ์ด: โลโก้ BOSS STORE + ไฟเขียว 24 ชม. + ปุ่มธีม (ทุกหน้าใช้เหมือนกัน)
+const LINE_OA_URL = 'https://line.me/R/ti/p/@019hqour'; // LINE OA ของร้าน (เพิ่มเพื่อน)
+
+// หัวการ์ด: โลโก้ BOSS STORE + ปุ่ม LINE + ไฟเขียว 24 ชม. + ปุ่มธีม (ทุกหน้าใช้เหมือนกัน)
 function Header({ theme, onToggle, right }) {
   return (
     <div className="bs-head">
-      <div className="bs-logo"><i aria-hidden="true">B</i>BOSS STORE</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <div className="bs-logo"><i aria-hidden="true">B</i>BOSS STORE</div>
+        {/* ร้านสั่ง 12 พ.ย.: ปุ่มเพิ่มเพื่อน LINE OA ข้างโลโก้ */}
+        <a className="bs-line" href={LINE_OA_URL} target="_blank" rel="noopener noreferrer" aria-label="เพิ่มเพื่อน LINE BOSS STORE">
+          <span aria-hidden="true">+</span>LINE
+        </a>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {right || <span className="bs-pill"><span className="bs-dot" aria-hidden="true" />24 ชม.</span>}
         {onToggle && <ThemeToggle theme={theme} onToggle={onToggle} />}
