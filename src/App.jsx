@@ -24,6 +24,18 @@ function loadPending() {
   } catch {}
   return null;
 }
+// ร้านขอ 12 พ.ย.: จำไอดีเกมที่ลูกค้าเคยเติม (แยกตามเกม ล่าสุด 3 ไอดี) ไว้ในเครื่องลูกค้า · มีปุ่ม × ลบออกได้
+const RECENT_KEY = 'bossstore_recent_ids';
+const RECENT_MAX = 3;
+function loadRecent() {
+  try {
+    const r = JSON.parse(localStorage.getItem(RECENT_KEY) || '{}');
+    return r && typeof r === 'object' ? r : {};
+  } catch { return {}; }
+}
+function saveRecent(r) {
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(r)); } catch { /* ข้ามได้ */ }
+}
 function savePending(p) {
   try {
     if (p) localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
@@ -380,6 +392,14 @@ html,body{background:var(--bg)!important}
 .bs-input{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:10px 14px;color:var(--ink);
   font:700 18px/1.2 Prompt,sans-serif;letter-spacing:.5px;outline:none;transition:border-color .15s}
 .bs-input:focus{border-color:var(--ink)}
+.bs-recent{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.bs-recent .lbl{font-size:12px;color:var(--muted);margin-right:2px}
+.bs-recent .chip{display:inline-flex;align-items:center;background:var(--chip);color:var(--chip-ink);border-radius:999px;border:1.5px solid transparent}
+.bs-recent .chip.on{border-color:var(--accent)}
+.bs-recent .chip button{background:none;border:0;color:inherit;cursor:pointer}
+.bs-recent .chip .id{font:600 13px/1 Prompt,sans-serif;padding:7px 4px 7px 11px;letter-spacing:.3px}
+.bs-recent .chip .x{font:400 16px/1 sans-serif;padding:5px 9px 6px 5px;opacity:.6}
+.bs-recent .chip .x:hover{opacity:1}
 .bs-input::placeholder{color:var(--soft);font-weight:500;letter-spacing:0}
 .bs-check{position:absolute;right:14px;top:50%;transform:translateY(-50%);font:600 12.5px/1 Prompt,sans-serif}
 .bs-amount{background:var(--dark);color:var(--dark-ink);border-radius:18px;padding:12px 14px 11px}
@@ -917,7 +937,22 @@ const METHODS = [
 ];
 
 export default function App() {
-  const [gameId, setGameId] = useState('');
+  const [recentIds, setRecentIds] = useState(loadRecent);
+  // เปิดเว็บมา: ใส่ไอดีล่าสุดของเกมเริ่มต้น (Royal) ให้เลย
+  const [gameId, setGameId] = useState(() => (loadRecent().royal || [])[0] || '');
+  const updateRecent = (fn) => setRecentIds((prev) => { const next = fn(prev); saveRecent(next); return next; });
+  const rememberId = (g, id) => updateRecent((prev) => ({
+    ...prev, [g]: [id, ...(prev[g] || []).filter((x) => x !== id)].slice(0, RECENT_MAX),
+  }));
+  const forgetId = (g, id) => {
+    updateRecent((prev) => ({ ...prev, [g]: (prev[g] || []).filter((x) => x !== id) }));
+    setGameId((cur) => (cur === id ? '' : cur));
+  };
+  // สลับเกม: ถ้าช่องว่าง หรือเป็นไอดีที่จำไว้ของเกมก่อน → เปลี่ยนเป็นไอดีล่าสุดของเกมใหม่
+  const switchGame = (from, to) => {
+    if (from === to) return;
+    setGameId((cur) => (!cur || (recentIds[from] || []).includes(cur) ? (recentIds[to] || [])[0] || '' : cur));
+  };
   const [method, setMethod] = useState('promptpay');
   const [customAmount, setCustomAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1079,6 +1114,7 @@ export default function App() {
       const data = await response.json();
 
       if (data.id && (data.qrData || data.url)) {
+        rememberId(game, gameId);
         savePending(data);
         setPending(data);
       } else {
@@ -1219,7 +1255,7 @@ export default function App() {
             const open = openGames[key];
             return (
               <button key={key} type="button" role="radio" aria-checked={on && open} disabled={!open}
-                      onClick={() => { setGame(key); setShowPackages(false); }} className="bs-opt">
+                      onClick={() => { switchGame(game, key); setGame(key); setShowPackages(false); }} className="bs-opt">
                 {on && open && <span className="bs-tag">เลือกอยู่</span>}
                 <b><span className="bs-gdot" style={{ background: key === 'siam' ? 'var(--siam)' : 'var(--royal)' }} />{GAMES[key].short}</b>
                 <span className="s" style={!open ? { color: 'var(--warn)' } : undefined}>
@@ -1243,6 +1279,17 @@ export default function App() {
             {idState === 'found' && <span className="bs-check" style={{ color: 'var(--good)' }}>✓ ตรวจแล้ว</span>}
             {idState === 'not_found' && <span className="bs-check" style={{ color: 'var(--bad)' }}>✗ ไม่พบในเกม</span>}
           </div>
+          {(recentIds[game] || []).length > 0 && (
+            <div className="bs-recent">
+              <span className="lbl">ไอดีที่เคยเติม</span>
+              {(recentIds[game] || []).map((id) => (
+                <span key={id} className={'chip' + (id === gameId ? ' on' : '')}>
+                  <button type="button" className="id" onClick={() => setGameId(id)}>{id}</button>
+                  <button type="button" className="x" aria-label={`ลบไอดี ${id} ออกจากประวัติ`} onClick={() => forgetId(game, id)}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
           {idState === 'not_found' && (
             <p style={{ marginTop: 6, fontSize: 12.5, color: 'var(--bad)' }}>ไม่พบไอดีนี้ในเกม {gameInfo.short} ตรวจตัวเลขอีกครั้ง</p>
           )}
