@@ -159,12 +159,14 @@ function OrderCode({ id, visible, fallbackAt = 0, gameName = '', gameId = '' }) 
 }
 
 // กล่องบนสุดของหน้าจ่าย (ร้านขอ 12 พ.ย. ให้คงแบบเดิม): "เติม <เกม> ให้ไอดี <ไอดี>" + รหัสออเดอร์ + ปุ่มคัดลอก
-// ร้านสั่ง 12 พ.ย.: โชว์รหัสทันทีที่เข้าหน้านี้ ไม่ต้องกดเปิดดู (เลิกกฎ 9 พ.ย. ที่ให้เห็นหลังจ่ายแล้วเท่านั้น)
-function OrderBox({ pending }) {
+// ร้านสั่ง 12 พ.ย. (รอบ 2): ซ่อนรหัสออเดอร์จนกว่าลูกค้าจะโอน/อัปสลิป (ยังไม่จ่ายไม่ต้องเห็นรหัส)
+// ถ้าเลย fallbackAt แล้วยังไม่ขึ้น มีลิงก์ "โอนแล้วแต่ยังไม่ขึ้น? ดูรหัสรายการ" ให้กดเปิดเอง
+function OrderBox({ pending, visible = true, fallbackAt = 0 }) {
   return (
     <div className="bs-orderbox">
       <p className="t">เติม <b>{gameOf(pending.game).name}</b> ให้ไอดี <b className="id">{pending.gameId}</b></p>
-      <OrderCode id={pending.id} gameName={gameOf(pending.game).name} gameId={pending.gameId} visible />
+      <OrderCode id={pending.id} gameName={gameOf(pending.game).name} gameId={pending.gameId}
+        visible={visible} fallbackAt={fallbackAt} />
     </div>
   );
 }
@@ -259,7 +261,7 @@ function PaymentCard({ pending, onDone, onCancel }) {
       <div className="bs-row" style={{ marginBottom: 12 }}>
         <h1 className="bs-h1" style={{ fontSize: 28 }}>สแกนจ่าย</h1>
       </div>
-      <OrderBox pending={pending} />
+      <OrderBox pending={pending} visible={paid} />
       <div className="bs-qrbox">
         <div className="bs-muted" style={{ fontSize: 12.5 }}>ยอดชำระ</div>
         <div className="big">{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}<small>บาท</small></div>
@@ -380,18 +382,18 @@ html,body{background:var(--bg)!important}
 .bs-input:focus{border-color:var(--ink)}
 .bs-input::placeholder{color:var(--soft);font-weight:500;letter-spacing:0}
 .bs-check{position:absolute;right:14px;top:50%;transform:translateY(-50%);font:600 12.5px/1 Prompt,sans-serif}
-.bs-amount{background:var(--dark);color:var(--dark-ink);border-radius:20px;padding:16px 16px 14px}
+.bs-amount{background:var(--dark);color:var(--dark-ink);border-radius:18px;padding:12px 14px 11px}
 html.theme-dark .bs-amount{border:1px solid var(--line)}
 .bs-amount .top{display:flex;justify-content:space-between;font-size:12px;color:#b9b0a3}
 .bs-amount input{width:100%;background:transparent;border:0;outline:none;color:var(--dark-ink);text-align:center;
-  font:800 46px/1.1 Prompt,sans-serif;padding:10px 0 2px;-moz-appearance:textfield}
+  font:800 34px/1.1 Prompt,sans-serif;padding:4px 0 0;-moz-appearance:textfield}
 .bs-amount input::-webkit-outer-spin-button,.bs-amount input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.bs-amount input::placeholder{color:#7d7468;font:600 24px/1.9 Prompt,sans-serif}
-.bs-amount .unit{text-align:center;font-size:13px;color:#b9b0a3;margin-top:-2px}
-.bs-amount .coins{margin-top:10px;padding-top:10px;border-top:1px dashed #4a433a;font:700 15px/1.3 Prompt,sans-serif;color:var(--gold)}
+.bs-amount input::placeholder{color:#7d7468;font:600 20px/1.85 Prompt,sans-serif}
+.bs-amount .unit{text-align:center;font-size:12px;color:#b9b0a3;margin-top:-2px}
+.bs-amount .coins{margin-top:7px;padding-top:7px;border-top:1px dashed #4a433a;font:700 14px/1.3 Prompt,sans-serif;color:var(--gold)}
 .bs-amount .note{font-size:11.5px;color:#9b9284;margin-top:2px}
-.bs-chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px}
-.bs-chipbtn{background:var(--chip);color:var(--chip-ink);border:0;border-radius:12px;padding:11px 0;font:700 14px/1 Prompt,sans-serif;cursor:pointer}
+.bs-chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:9px}
+.bs-chipbtn{background:var(--chip);color:var(--chip-ink);border:0;border-radius:10px;padding:8px 0;font:700 13px/1 Prompt,sans-serif;cursor:pointer}
 .bs-chipbtn[aria-pressed="true"]{background:var(--accent);color:#fff}
 .bs-link{background:none;border:0;color:var(--ink);text-decoration:underline;text-underline-offset:4px;font-size:13px;cursor:pointer}
 .bs-link.muted{color:var(--muted)}
@@ -655,7 +657,8 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           {paid ? 'กำลังส่งเหรียญ' : review ? 'รอตรวจสอบ' : 'สแกนจ่าย'}
         </h1>
       </div>
-      <OrderBox pending={pending} visible={status !== 'idle' || !!msg} />
+      <OrderBox pending={pending} visible={status !== 'idle' || !!msg}
+        fallbackAt={pending.qrExpiresAt ? (pending.qrExpiresAt - 10 * 60 + 3 * 60) * 1000 : 0} />
 
       <div className="bs-qrbox">
         <div className="bs-muted" style={{ fontSize: 12.5 }}>ยอดที่ต้องโอน (ต้องตรงตามนี้)</div>
