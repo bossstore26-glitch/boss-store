@@ -43,18 +43,37 @@ function savePending(p) {
   } catch {}
 }
 
+// แถบเตือนบน/ล่างของรูป QR กันโกงสามเส้า (โจรส่ง QR ให้เหยื่อโอนค่าสินค้าอื่น) · ร้านสั่ง 14 พ.ย.
+const QR_WARN_TOP = ['ใช้บัญชีตัวเองเติมเหรียญเท่านั้น'];
+const QR_WARN_BOTTOM = ['หากใช้บัญชีผู้อื่น เหรียญจะไม่ถูกส่ง'];
+
 async function drawQr(canvas, data, label) {
   const size = 600;
-  await QRCode.toCanvas(canvas, data, {
+  const lineH = 46;
+  const topH = 24 + QR_WARN_TOP.length * lineH;
+  const bottomH = 24 + QR_WARN_BOTTOM.length * lineH;
+  const qr = document.createElement('canvas');
+  await QRCode.toCanvas(qr, data, {
     errorCorrectionLevel: 'H',
     margin: 2,
     width: size,
     color: { dark: '#000000', light: '#ffffff' },
   });
-  // qrcode ใส่ style กว้าง 600px ทับ class ไว้ ล้างออกให้ขนาดตาม CSS
+  canvas.width = size;
+  canvas.height = topH + size + bottomH;
   canvas.style.width = '';
   canvas.style.height = '';
   const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(0, 0, size, canvas.height);
+  ctx.drawImage(qr, 0, topH);
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 36px "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif';
+  QR_WARN_TOP.forEach((t, i) => ctx.fillText(t, size / 2, 12 + lineH * (i + 0.5), size - 24));
+  QR_WARN_BOTTOM.forEach((t, i) => ctx.fillText(t, size / 2, topH + size + 12 + lineH * (i + 0.5), size - 24));
+  ctx.translate(0, topH); // ป้ายเกม/ไอดีกลาง QR วาดตามพิกัดเดิม
   // กล่องขาวตรงกลาง แล้ววางข้อความสีแดง
   // ขนาดนี้ทดสอบแล้วสแกนติดแม้ภาพเล็ก ถ้าขยายกล่อง/ตัวอักษร แอปธนาคารอาจสแกนไม่ติด
   const boxW = size * 0.5;
@@ -67,9 +86,9 @@ async function drawQr(canvas, data, label) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = 'bold 23px "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif';
-  const lineH = boxH / (label.length + 0.4);
+  const labelH = boxH / (label.length + 0.4);
   label.forEach((line, i) => {
-    ctx.fillText(line, size / 2, y + lineH * (i + 0.7), boxW - 12);
+    ctx.fillText(line, size / 2, y + labelH * (i + 0.7), boxW - 12);
   });
 }
 
@@ -283,7 +302,7 @@ function PaymentCard({ pending, onDone, onCancel }) {
         <div className="big">{pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}<small>บาท</small></div>
         <div className="bs-gold" style={{ font: '700 14px/1.4 Prompt,sans-serif' }}>{formatChips(pending.chips, pending.game)} เหรียญ</div>
         <div className="bs-qr" style={{ opacity: dead ? 0.3 : 1 }}>
-          <canvas ref={canvasRef} className="w-60 h-60 sm:w-64 sm:h-64 block" />
+          <canvas ref={canvasRef} className="w-60 h-auto sm:w-64 block" />
         </div>
       </div>
       <div style={{ marginTop: 14 }}>
@@ -713,7 +732,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         {!paid && !review && !qrExpired && (
           <>
             <div className="bs-qr">
-              <canvas ref={canvasRef} className="w-60 h-60 sm:w-64 sm:h-64 block" />
+              <canvas ref={canvasRef} className="w-60 h-auto sm:w-64 block" />
             </div>
             <p className={`bs-timer ${secondsLeft <= 60 ? 'low' : ''}`}>
               เหลือ<b>{Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</b>นาทีก่อน QR หมดอายุ
@@ -933,7 +952,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
             </a>
             <p className="bs-cap" style={{ marginTop: 14 }}>ใช้คอมอยู่? สแกน QR นี้ด้วยกล้องมือถือ</p>
             <div className="bs-qr" style={{ marginTop: 4 }}>
-              <canvas ref={canvasRef} className="w-56 h-56 sm:w-60 sm:h-60 block" />
+              <canvas ref={canvasRef} className="w-56 h-auto sm:w-60 block" />
             </div>
             <p className="bs-sub" style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', marginTop: 12 }}>
               <Loader2 className="w-5 h-5 bs-spin" /> รอการโอนเงิน...
