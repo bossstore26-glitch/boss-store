@@ -3,7 +3,7 @@
 import { shopStatus } from './_shop.js';
 
 export default async function handler(req, res) {
-  const { games, methods, offline } = await shopStatus();
+  const { games, methods, offline, promo } = await shopStatus();
   res.setHeader('Cache-Control', 'no-store');
-  return res.status(200).json({ games, methods, offline });
+  return res.status(200).json({ games, methods, offline, promo: offline ? null : promo });
 }

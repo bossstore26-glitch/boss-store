@@ -19,6 +19,8 @@ export default async function handler(req, res) {
     // checking = พร้อมเพย์: บอทกำลังรอธนาคารยืนยันสลิป / failed = บอทตรวจซ้ำเองแล้วไม่ผ่าน (มี message)
     const status = ['paid', 'review', 'delivered', 'checking', 'failed'].includes(d.status) ? d.status : 'waiting';
     if (status === 'failed') return res.status(200).json({ status, message: d.message || '' });
+    // bonus = เหรียญแถมโปรที่บอทส่งไปจริงกับออเดอร์นี้ (โชว์ในป๊อปอัปส่งเสร็จ)
+    if (status === 'delivered') return res.status(200).json({ status, bonus: Number(d.bonus) || 0 });
     // otp = ไอดีใหม่ ร้านส่งรหัสยืนยันไปที่เบอร์ทรูมันนี่ที่โอน ให้ลูกค้ากรอกบนหน้านี้
     return res.status(200).json({ status, otp: status === 'review' && !!d.otp, phone: d.phone || null });
   } catch {

@@ -12,7 +12,8 @@ export async function shopStatus() {
   const games = Object.fromEntries(GAME_KEYS.map((k) => [k, true]));
   const methods = Object.fromEntries(METHOD_KEYS.map((k) => [k, true]));
   const bot = process.env.BOT_URL;
-  if (!bot) return { games, methods, known: false, offline: false }; // ยังไม่ได้ตั้ง BOT_URL ใน Vercel → ไม่บล็อก
+  let promo = null; // โปรแถมเหรียญ (ร้านเปิดในแผงควบคุม) หน้าเว็บโชว์ป้าย
+  if (!bot) return { games, methods, promo, known: false, offline: false }; // ยังไม่ได้ตั้ง BOT_URL ใน Vercel → ไม่บล็อก
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const r = await fetch(`${bot.replace(/\/$/, '')}/shop/status`, {
@@ -28,13 +29,18 @@ export async function shopStatus() {
       for (const k of METHOD_KEYS) {
         if (d?.methods && d.methods[k] === false) methods[k] = false;
       }
-      return { games, methods, known: true, offline: false };
+      // โปรแถมแยกต่อเกม: promo = Royal, promo_siam = Siam → ส่งต่อเป็น { royal, siam } (เฉพาะที่เปิดอยู่)
+      const pick = (p) => (p?.on ? { on: true, bonus: Number(p.bonus) || 0, min_baht: Number(p.min_baht) || 0,
+                                     scope: p.scope === 'new' ? 'new' : 'all' } : null);
+      const royal = pick(d?.promo), siam = pick(d?.promo_siam);
+      promo = royal || siam ? { royal, siam } : null;
+      return { games, methods, promo, known: true, offline: false };
     } catch {}
   }
   // ร้านติดต่อไม่ได้ → ปิดทุกอย่าง
   for (const k of GAME_KEYS) games[k] = false;
   for (const k of METHOD_KEYS) methods[k] = false;
-  return { games, methods, known: false, offline: true };
+  return { games, methods, promo: null, known: false, offline: true };
 }
 
 export const OFFLINE_MESSAGE = 'ขออภัย ระบบเติมเหรียญปิดชั่วคราว (กำลังแก้ไข) กรุณาลองใหม่ภายหลัง ยังไม่มีการเรียกเก็บเงิน';
