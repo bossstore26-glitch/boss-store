@@ -184,7 +184,7 @@ function OrderBox({ pending, visible = true, fallbackAt = 0 }) {
 }
 
 // ป๊อปอัปเมื่อบอทส่งเหรียญเข้าไอดีเสร็จจริง กด "ตกลง" กลับหน้าแรก
-function DeliveredPopup({ pending, onOk }) {
+function DeliveredPopup({ pending, onOk, bonus = 0 }) {
   return (
     <div className="bs-modal" role="dialog" aria-modal="true" aria-labelledby="delivered-title">
       <div className="bs-card" style={{ textAlign: 'center' }}>
@@ -193,6 +193,10 @@ function DeliveredPopup({ pending, onOk }) {
         <p className="bs-gold" style={{ marginTop: 12, font: '800 26px/1.2 Prompt,sans-serif' }}>
           {formatChips(pending.chips, pending.game)} เหรียญ
         </p>
+        {bonus > 0 && (
+          // ร้านสั่ง 13 พ.ย.: โปรแถม — บอกลูกค้าหลังจ่ายว่าได้แถมเท่าไร (ยอดที่บอทส่งไปจริง)
+          <p className="bs-promo-got">🎁 แถมโปรโมชั่น +{formatChips(bonus, pending.game)} เหรียญ</p>
+        )}
         <p className="bs-sub" style={{ marginTop: 4 }}>
           เข้า {gameOf(pending.game).name} ไอดี <b className="bs-ink">{pending.gameId}</b> แล้ว
           <br />เข้าเกมตรวจกล่องของขวัญได้เลย ขอบคุณที่ใช้บริการ BOSS STORE
@@ -396,6 +400,14 @@ html,body{background:var(--bg)!important}
 .bs-input{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:10px 14px;color:var(--ink);
   font:700 18px/1.2 Prompt,sans-serif;letter-spacing:.5px;outline:none;transition:border-color .15s}
 .bs-input:focus{border-color:var(--ink)}
+.bs-promo{display:flex;gap:10px;align-items:center;padding:11px 13px;border-radius:14px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 22%,transparent),color-mix(in srgb,var(--royal) 18%,transparent));
+  border:1.5px solid color-mix(in srgb,var(--gold) 55%,transparent)}
+.bs-promo .ic{font-size:26px;line-height:1}
+.bs-promo b{display:block;font:700 15px/1.3 Prompt,sans-serif;color:var(--ink)}
+.bs-promo span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.bs-promo-got{margin-top:8px;display:inline-block;padding:6px 12px;border-radius:999px;
+  background:color-mix(in srgb,var(--gold) 20%,transparent);color:var(--gold);font:700 15px/1.3 Prompt,sans-serif}
 .bs-recent{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
 .bs-recent .lbl{font-size:12px;color:var(--muted);margin-right:2px}
 .bs-recent .chip{display:inline-flex;align-items:center;background:var(--chip);color:var(--chip-ink);border-radius:999px;border:1.5px solid transparent}
@@ -532,6 +544,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   const fileRef = useRef(null);
   // idle = รอโอน/อัปโหลด, checking = กำลังตรวจ, paid, review = ร้านตรวจไอดีใหม่, locked
   const [status, setStatus] = useState('idle');
+  const [bonus, setBonus] = useState(0);
   const [msg, setMsg] = useState('');
   const [msgBad, setMsgBad] = useState(false);
   // QR ใช้ได้ 10 นาที (กันเซฟ QR ไว้ให้คนอื่นจ่ายทีหลัง) หมดแล้วยังอัปโหลดสลิปได้ถ้าโอนไปแล้ว
@@ -579,6 +592,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         const d = await r.json();
         if (stopped) return;
         if (d.status === 'delivered') {
+          setBonus(Number(d.bonus) || 0);
           setStatus('delivered');
           savePending(null);
           return;
@@ -682,7 +696,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         </div>
       )}
       <QrPreview src={preview} onClose={() => setPreview(null)} />
-      {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} />}
+      {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} bonus={bonus} />}
 
       <div className="bs-row" style={{ marginBottom: 12, alignItems: 'flex-end' }}>
         <h1 className="bs-h1" style={{ fontSize: 28 }}>
@@ -785,6 +799,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
 function TrueMoneyCard({ pending, onDone, onCancel }) {
   const canvasRef = useRef(null);
   const [status, setStatus] = useState('waiting');
+  const [bonus, setBonus] = useState(0);
   // ไอดีใหม่: ร้านส่ง OTP ไปที่เบอร์ทรูมันนี่ที่โอน ลูกค้ากรอกแล้วได้เหรียญทันที
   const [otpInfo, setOtpInfo] = useState(null);
   const [otp, setOtp] = useState('');
@@ -824,6 +839,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
         const d = await r.json();
         if (stopped) return;
         if (d.status === 'delivered') {
+          setBonus(Number(d.bonus) || 0);
           setStatus('delivered');
           savePending(null);
           return;
@@ -845,7 +861,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
 
   return (
     <>
-      {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} />}
+      {status === 'delivered' && <DeliveredPopup pending={pending} onOk={onDone} bonus={bonus} />}
       <div className="bs-row" style={{ marginBottom: 12, alignItems: 'flex-end' }}>
         <h1 className="bs-h1" style={{ fontSize: 28 }}>{paid ? 'กำลังส่งเหรียญ' : review ? 'รอตรวจสอบ' : 'โอนทรูมันนี่'}</h1>
       </div>
@@ -980,6 +996,8 @@ export default function App() {
   const [openMethods, setOpenMethods] = useState(() => Object.fromEntries(METHODS.map((m) => [m.key, true])));
   // ติดต่อคอมร้านไม่ได้ (ไฟดับ/เน็ตหลุด) → ปิดรับเงินทั้งหมด กันลูกค้าจ่ายแล้วไม่ได้เหรียญ
   const [offline, setOffline] = useState(false);
+  // โปรแถมเหรียญ (ร้านเปิดในแผงควบคุม) { on, bonus, min_baht, scope } หรือ null
+  const [promo, setPromo] = useState(null);
   // โหมดมืด/สว่าง (ร้านสั่ง 12 พ.ย.: เริ่มต้นโหมดมืด · จำค่าที่ลูกค้าเลือกไว้ในเครื่อง)
   const [theme, setTheme] = useState(() => {
     try {
@@ -1003,6 +1021,7 @@ export default function App() {
         if (d.games) setOpenGames((prev) => ({ ...prev, ...d.games }));
         if (d.methods) setOpenMethods((prev) => ({ ...prev, ...d.methods }));
         setOffline(!!d.offline);
+        setPromo(d.promo && (d.promo.royal || d.promo.siam) ? d.promo : null); // { royal, siam } เฉพาะเกมที่เปิดโปร
       } catch {}
     };
     load();
@@ -1277,6 +1296,24 @@ export default function App() {
             );
           })}
         </div>
+
+        {/* โปรแถม แยกต่อเกม (ร้านสั่ง 13 พ.ย.) — ขึ้นเฉพาะเกมที่ร้านเปิดโปร */}
+        {(() => {
+          const p = promo && promo[game];
+          if (!p || !(p.bonus > 0) || offline) return null;
+          return (
+            <div className="bs-promo" role="note">
+              <span className="ic" aria-hidden="true">🎁</span>
+              <div>
+                <b>โปรโมชั่น! แถมฟรี {formatChips(p.bonus, game)} เหรียญ</b>
+                <span>
+                  {p.scope === 'new' ? 'ไอดีที่ยังไม่เคยเติมกับร้าน' : 'ทุกไอดี'} รับได้ไอดีละ 1 ครั้ง
+                  {p.min_baht > minBaht(game) ? ` · เติมขั้นต่ำ ${p.min_baht} บาท` : ''} · ส่งรวมไปพร้อมเหรียญที่ซื้อ
+                </span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ไอดีเกม */}
         <div>
