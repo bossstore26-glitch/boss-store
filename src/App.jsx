@@ -36,7 +36,7 @@ async function copyToClipboard(text) {
   }
 }
 
-const MEMO_STEP = (<>ก่อนกดโอนเงิน จะมีช่อง <b>"บันทึก/บันทึกช่วยจำ"</b><br />ให้วางข้อความข้อ 1 ลงไป</>);
+const MEMO_STEP = (<>ก่อนกดโอน เลือกช่อง <b>"บันทึกช่วยจำ"</b><br />แล้ววางข้อความข้อ 1</>);
 
 function SlipNote({ game, gameId, text }) {
   const note = text || slipNote(game, gameId);
@@ -870,9 +870,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           <div className="bs-alert warn">
             <b>ได้รับเงินแล้ว ✅ เติมครั้งแรกต้องยืนยันตัวตน</b>
             <div style={{ marginTop: 6, lineHeight: 1.6 }}>
-              กรุณาคัดลอกข้อความนี้ ส่งในแชทร้าน (LINE หรือเพจ) พร้อม <b>สลิปที่มีบันทึกช่วยจำ</b>
-              <SlipNote text={`เติม ${gameOf(pending.game).name} ให้ไอดี ${pending.gameId} #${pending.id} เติมครั้งแรก`} />
-              <div style={{ marginTop: 6 }}>ร้านตรวจแล้วส่งเหรียญให้ทันที</div>
+              กรุณาทักข้อความแชทที่ร้าน
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <a className="bs-btn" style={{ flex: 1, background: '#06C755', color: '#fff' }} href={LINE_OA_URL} target="_blank" rel="noopener noreferrer">LINE</a>
