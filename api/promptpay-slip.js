@@ -18,8 +18,10 @@ export default async function handler(req, res) {
 
   const bot = process.env.BOT_URL;
   if (!bot) return res.status(503).json({ status: 'error', message: 'ระบบยังไม่พร้อม กรุณาทักแชทเพจ' });
+  // verify = สลิปยืนยันตัวตน 0.10 บาท (เปิดเมื่อร้านกด 📎 ใน Telegram) · ร้านสั่ง 14 พ.ย.
+  const path = req.body?.verify ? '/shop/pp/verify' : '/shop/pp/slip';
   try {
-    const r = await fetch(`${bot.replace(/\/$/, '')}/shop/pp/slip`, {
+    const r = await fetch(`${bot.replace(/\/$/, '')}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
       // IP ลูกค้า ให้บอทจำกัดจำนวนครั้ง/บล็อกคนอัปโหลดมั่ว (กันเผาโทเคน Slip2Go)

@@ -1,3 +1,7 @@
+import { promptPayPayload, PROMPTPAY_ID } from './create-promptpay.js';
+
+const VERIFY_BAHT = 0.1; // ตรงกับ VERIFY_BAHT ในบอท
+
 // หน้าเว็บถามว่าออเดอร์ทรูมันนี่จ่ายแล้วหรือยัง → ถามบอทที่คอมร้าน (ผ่าน ngrok)
 // ตั้งค่าใน Vercel: BOT_URL = https://enviable-canyon-verbally.ngrok-free.dev
 export default async function handler(req, res) {
@@ -21,8 +25,19 @@ export default async function handler(req, res) {
     if (status === 'failed') return res.status(200).json({ status, message: d.message || '' });
     // bonus = เหรียญแถมโปรที่บอทส่งไปจริงกับออเดอร์นี้ (โชว์ในป๊อปอัปส่งเสร็จ)
     if (status === 'delivered') return res.status(200).json({ status, bonus: Number(d.bonus) || 0 });
+    // verify = ร้านกด 📎 ขอสลิปยืนยัน 0.10 บาท → หน้าเว็บขึ้น QR 0.10 + บันทึกช่วยจำ + ปุ่มอัป (ร้านสั่ง 14 พ.ย.)
+    let verify = null;
+    if (status === 'review' && d.verify && ['open', 'checking', 'ok', 'bad'].includes(d.verify.state)) {
+      verify = {
+        state: d.verify.state,
+        message: String(d.verify.message || '').slice(0, 300),
+        triesLeft: Number(d.verify.triesLeft) || 0,
+        qrData: promptPayPayload(PROMPTPAY_ID, VERIFY_BAHT),
+        amount: VERIFY_BAHT,
+      };
+    }
     // otp = ไอดีใหม่ ร้านส่งรหัสยืนยันไปที่เบอร์ทรูมันนี่ที่โอน ให้ลูกค้ากรอกบนหน้านี้
-    return res.status(200).json({ status, otp: status === 'review' && !!d.otp, phone: d.phone || null });
+    return res.status(200).json({ status, otp: status === 'review' && !!d.otp, phone: d.phone || null, verify });
   } catch {
     return res.status(200).json({ status: 'unknown' }); // บอทปิดอยู่ ไม่ใช่ความผิดลูกค้า
   }

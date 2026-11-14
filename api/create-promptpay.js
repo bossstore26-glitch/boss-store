@@ -5,7 +5,7 @@ import { checkOpen, idStatus, BLOCKED_MESSAGE } from './_shop.js';
 // พร้อมเพย์ธนาคารของร้าน (ไม่ผ่าน Stripe แล้ว) → ลูกค้าสแกนจ่าย แล้วอัปโหลดสลิป
 // บอทที่คอมร้านตรวจสลิปกับ Slip2Go (api/promptpay-slip.js) แล้วส่งเหรียญ
 // ตั้งค่าใน Vercel (ไม่ตั้งก็ได้): PROMPTPAY_ID = เบอร์พร้อมเพย์ร้าน 10 หลัก
-const PROMPTPAY_ID = String(process.env.PROMPTPAY_ID || '0950871209').replace(/\D/g, '');
+export const PROMPTPAY_ID = String(process.env.PROMPTPAY_ID || '0950871209').replace(/\D/g, '');
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // ไม่มี 0/O/1/I กันสับสน
 const UPLOAD_HOURS = 24; // ตรงกับ PP_UPLOAD_HOURS ในบอท
 const QR_MINUTES = 10; // ตรงกับ PP_QR_MINUTES ในบอท (โอนช้ากว่านี้ บอทกักให้ร้านตรวจ)
