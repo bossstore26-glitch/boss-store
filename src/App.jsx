@@ -17,6 +17,40 @@ function qrLabel(game, gameId) {
   return [`เติม ${gameOf(game).name}`, `ID ${gameId}`, 'ร้าน BOSS STORE'];
 }
 
+// ข้อความแนะนำให้ลูกค้าวางใน "บันทึกช่วยจำ" ตอนโอน (ร้านสั่ง 14 พ.ย. · ไม่บังคับ บอทไม่ได้ตรวจ)
+// เหยื่อโกงสามเส้าที่ต้องพิมพ์ "เติม Royal ..." จะสะดุดใจ + เป็นหลักฐานบนสลิป
+function slipNote(game, gameId) {
+  return `เติม ${gameOf(game).name.replace(/\s*Game$/i, '')} ไอดี ${gameId} เพจBOSS STORE`;
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch { /* ignore */ }
+    ta.remove();
+  }
+}
+
+function SlipNote({ game, gameId }) {
+  const note = slipNote(game, gameId);
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="bs-note">
+      <span>{note}</span>
+      <button type="button" className="bs-note-btn" onClick={async () => {
+        await copyToClipboard(note);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}>{copied ? 'คัดลอกแล้ว ✓' : 'คัดลอก'}</button>
+    </div>
+  );
+}
+
 function loadPending() {
   try {
     const p = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
@@ -512,6 +546,9 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-steps{list-style:none;padding:0;margin:0;display:grid;gap:12px}
 .bs-steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink)}
 .bs-steps li i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--card);font:700 12px/22px Prompt,sans-serif;text-align:center;font-style:normal}
+.bs-note{display:flex;align-items:center;gap:8px;margin-top:6px;padding:8px 8px 8px 12px;border:1.5px dashed var(--line);border-radius:12px;background:var(--card)}
+.bs-note span{flex:1;min-width:0;font-weight:700;font-size:13px;line-height:1.4;word-break:break-word}
+.bs-note-btn{flex:none;padding:6px 12px;border-radius:999px;background:var(--ink);color:var(--card);font:700 12.5px/1.2 Prompt,sans-serif;cursor:pointer;border:0}
 .bs-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
 .bs-modal{position:fixed;inset:0;z-index:50;background:rgba(20,17,13,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 .bs-modal .bs-card{width:100%;max-width:400px;max-height:92vh;overflow:auto}
@@ -771,8 +808,12 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         ) : (
           <>
             <ol className="bs-steps">
-              <li><i>1</i><span>บันทึกภาพ QR แล้วสแกนโอน<br />ภายใน 10 นาที (ยอดต้องตรง <b>{money} บาท</b>)</span></li>
-              <li><i>2</i><span>กดปุ่ม "อัปโหลดสลิป" ด้านล่าง<br />เพื่อรับเหรียญอัตโนมัติ</span></li>
+              {!qrExpired && (
+                <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกแล้ววางใน "บันทึกช่วยจำ" ตอนโอน
+                  <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
+              )}
+              <li><i>{qrExpired ? 1 : 2}</i><span>บันทึกภาพ QR แล้วสแกนโอน<br />ภายใน 10 นาที (ยอดต้องตรง <b>{money} บาท</b>)</span></li>
+              <li><i>{qrExpired ? 2 : 3}</i><span>กดปุ่ม "อัปโหลดสลิป" ด้านล่าง<br />เพื่อรับเหรียญอัตโนมัติ</span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
             <button
