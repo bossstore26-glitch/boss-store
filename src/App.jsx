@@ -36,8 +36,8 @@ async function copyToClipboard(text) {
   }
 }
 
-function SlipNote({ game, gameId }) {
-  const note = slipNote(game, gameId);
+function SlipNote({ game, gameId, text }) {
+  const note = text || slipNote(game, gameId);
   const [copied, setCopied] = useState(false);
   return (
     <div className="bs-note">
@@ -574,6 +574,7 @@ function ThemeToggle({ theme, onToggle }) {
 }
 
 const LINE_OA_URL = 'https://line.me/R/ti/p/@019hqour'; // LINE OA ของร้าน (เพิ่มเพื่อน)
+const MESSENGER_URL = 'https://m.me/100079341141775'; // แชทเพจ Facebook BOSS STORE
 
 // หัวการ์ด: โลโก้ BOSS STORE + ปุ่ม LINE + ไฟเขียว 24 ชม. + ปุ่มธีม (ทุกหน้าใช้เหมือนกัน)
 function Header({ theme, onToggle, right }) {
@@ -793,6 +794,21 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
             <CheckCircle2 className="w-5 h-5 shrink-0" />
             <span>ตรวจสลิปผ่าน ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)</span>
           </div>
+        ) : review && !bankwait ? (
+          // ร้านสั่ง 14 พ.ย.: ถูกกักตรวจ (ไอดีใหม่/ชื่อไม่ตรง) → ให้ทักเพจส่งสลิปที่มีบันทึกช่วยจำ ยืนยันว่าโอนเองจริง
+          <div className="bs-alert warn">
+            <b>ได้รับเงินแล้ว ✅ เติมครั้งแรกต้องยืนยันตัวตน</b>
+            <div style={{ marginTop: 6, lineHeight: 1.6 }}>
+              กรุณาคัดลอกข้อความนี้ ส่งในแชทร้าน (LINE หรือเพจ) พร้อม <b>สลิปที่มีบันทึกช่วยจำ</b>
+              <SlipNote text={`เติม ${gameOf(pending.game).name} ให้ไอดี ${pending.gameId} #${pending.id} เติมครั้งแรก`} />
+              <div style={{ marginTop: 6 }}>ร้านตรวจแล้วส่งเหรียญให้ทันที</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <a className="bs-btn" style={{ flex: 1, background: '#06C755', color: '#fff' }} href={LINE_OA_URL} target="_blank" rel="noopener noreferrer">LINE</a>
+              <a className="bs-btn" style={{ flex: 1, background: '#0084FF', color: '#fff' }} href={MESSENGER_URL} target="_blank" rel="noopener noreferrer">Messenger</a>
+            </div>
+            <div className="bs-cap" style={{ marginTop: 8 }}>ไม่ต้องอัปโหลดซ้ำ หน้านี้จะเปลี่ยนเองเมื่อส่งเหรียญ</div>
+          </div>
         ) : review ? (
           <div className="bs-alert warn" style={{ display: 'flex', gap: 8 }}>
             <Loader2 className="w-5 h-5 shrink-0 bs-spin" />
@@ -810,6 +826,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
             <ol className="bs-steps">
               {!qrExpired && (
                 <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกแล้ววางใน "บันทึกช่วยจำ" ตอนโอน
+                  <br /><b style={{ color: 'var(--red, #dc2626)' }}>เติมครั้งแรก/ไอดีใหม่ ต้องใส่ ไม่งั้นส่งเหรียญช้า</b>
                   <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>บันทึกภาพ QR แล้วสแกนโอน<br />ภายใน 10 นาที (ยอดต้องตรง <b>{money} บาท</b>)</span></li>
