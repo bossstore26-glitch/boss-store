@@ -36,6 +36,8 @@ async function copyToClipboard(text) {
   }
 }
 
+const MEMO_STEP = (<>ก่อนกดโอนเงิน จะมีช่อง <b>"บันทึก/บันทึกช่วยจำ"</b><br />ให้วางข้อความข้อ 1 ลงไป</>);
+
 function SlipNote({ game, gameId, text }) {
   const note = text || slipNote(game, gameId);
   const [copied, setCopied] = useState(false);
@@ -637,10 +639,11 @@ function VerifyBox({ pending, verify, onState }) {
     <div className="bs-verify">
       <b>ร้านขอสลิปยืนยันตัวตนเพิ่ม</b>
       <ol className="bs-steps" style={{ marginTop: 8 }}>
-        <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกแล้ววางใน "บันทึกช่วยจำ" ตอนโอน
+        <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกข้อความนี้
           <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
         <li><i>2</i><span>สแกน QR โอน <b>{Number(verify.amount).toFixed(2)} บาท</b><br />จาก<b>บัญชีเดียวกับที่จ่ายครั้งแรก</b></span></li>
-        <li><i>3</i><span>อัปรูปสลิปจากแอปธนาคาร (ห้ามถ่ายจากจอ)</span></li>
+        <li><i>3</i><span>{MEMO_STEP}</span></li>
+        <li><i>4</i><span>อัปรูปสลิปจากแอปธนาคาร (ห้ามถ่ายจากจอ)</span></li>
       </ol>
       <div className="bs-qr" style={{ marginTop: 10 }}>
         <canvas ref={canvasRef} className="w-56 h-auto block" />
@@ -894,12 +897,13 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           <>
             <ol className="bs-steps">
               {!qrExpired && (
-                <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกแล้ววางใน "บันทึกช่วยจำ" ตอนโอน
+                <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกข้อความนี้
                   <br /><b style={{ color: 'var(--red, #dc2626)' }}>เติมครั้งแรก/ไอดีใหม่ ต้องใส่ ไม่งั้นส่งเหรียญช้า</b>
                   <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>บันทึกภาพ QR แล้วสแกนโอน<br />ภายใน 10 นาที (ยอดต้องตรง <b>{money} บาท</b>)</span></li>
-              <li><i>{qrExpired ? 2 : 3}</i><span>กดปุ่ม "อัปโหลดสลิป" ด้านล่าง<br />เพื่อรับเหรียญอัตโนมัติ</span></li>
+              {!qrExpired && <li><i>3</i><span>{MEMO_STEP}</span></li>}
+              <li><i>{qrExpired ? 2 : 4}</i><span>กดปุ่ม "อัปโหลดสลิป" ด้านล่าง<br />เพื่อรับเหรียญอัตโนมัติ</span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
             <button
