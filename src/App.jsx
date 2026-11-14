@@ -546,6 +546,7 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-steps{list-style:none;padding:0;margin:0;display:grid;gap:12px}
 .bs-steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink)}
 .bs-steps li i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--card);font:700 12px/22px Prompt,sans-serif;text-align:center;font-style:normal}
+.bs-verify{margin-top:14px;padding:14px;border-radius:16px;background:var(--card);border:1.5px solid var(--line);color:var(--ink)}
 .bs-note{display:flex;align-items:center;gap:8px;margin-top:6px;padding:8px 8px 8px 12px;border:1.5px dashed var(--line);border-radius:12px;background:var(--card)}
 .bs-note span{flex:1;min-width:0;font-weight:700;font-size:13px;line-height:1.4;word-break:break-word}
 .bs-note-btn{flex:none;padding:6px 12px;border-radius:999px;background:var(--ink);color:var(--card);font:700 12.5px/1.2 Prompt,sans-serif;cursor:pointer;border:0}
@@ -595,6 +596,71 @@ function Header({ theme, onToggle, right }) {
   );
 }
 
+// ร้านกด "📎 ขอสลิปยืนยัน 0.10 บาท" ใน Telegram (ร้านสั่ง 14 พ.ย.) → QR 0.10 + บันทึกช่วยจำ + ปุ่มอัปสลิป
+// บอทตรวจ: สลิปต้นฉบับ (Slip2Go) + คนโอนคนเดียวกับสลิปแรก แล้วแจ้งร้าน ร้านดูบันทึกช่วยจำแล้วกดส่งเอง
+function VerifyBox({ pending, verify, onState }) {
+  const canvasRef = useRef(null);
+  const fileRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const canUpload = !busy && (verify.state === 'open' || verify.state === 'bad') && verify.triesLeft > 0;
+  useEffect(() => {
+    if (canvasRef.current && verify.qrData) {
+      drawQr(canvasRef.current, verify.qrData, qrLabel(pending.game, pending.gameId)).catch(console.error);
+    }
+  }, [verify.qrData, pending.game, pending.gameId, verify.state === 'ok']);
+  const send = async (file) => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      const image = await slipToDataUrl(file);
+      const r = await fetch('/api/promptpay-slip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: pending.id, image, verify: true }),
+      });
+      const d = await r.json();
+      onState({ ...verify, state: d.status === 'ok' ? 'ok' : 'bad', message: d.message || '' });
+    } catch {
+      onState({ ...verify, state: 'bad', message: 'เชื่อมต่อร้านไม่ได้ชั่วคราว ลองอัปใหม่อีกครั้ง' });
+    }
+    setBusy(false);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+  if (verify.state === 'ok') {
+    return (
+      <div className="bs-alert good" style={{ marginTop: 12 }}>
+        {verify.message || 'ได้รับสลิปยืนยันแล้ว ✅ ร้านกำลังตรวจ แล้วส่งเหรียญให้'}
+      </div>
+    );
+  }
+  return (
+    <div className="bs-verify">
+      <b>ร้านขอสลิปยืนยันตัวตนเพิ่ม</b>
+      <ol className="bs-steps" style={{ marginTop: 8 }}>
+        <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกแล้ววางใน "บันทึกช่วยจำ" ตอนโอน
+          <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
+        <li><i>2</i><span>สแกน QR โอน <b>{Number(verify.amount).toFixed(2)} บาท</b><br />จาก<b>บัญชีเดียวกับที่จ่ายครั้งแรก</b></span></li>
+        <li><i>3</i><span>อัปรูปสลิปจากแอปธนาคาร (ห้ามถ่ายจากจอ)</span></li>
+      </ol>
+      <div className="bs-qr" style={{ marginTop: 10 }}>
+        <canvas ref={canvasRef} className="w-56 h-auto block" />
+      </div>
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => send(e.target.files?.[0])} />
+      <button type="button" className="bs-btn primary" style={{ marginTop: 12 }} disabled={!canUpload}
+        onClick={() => fileRef.current?.click()}>
+        {busy || verify.state === 'checking'
+          ? (<><Loader2 className="w-5 h-5 bs-spin" /> กำลังตรวจสลิป...</>)
+          : `อัปโหลดสลิป ${Number(verify.amount).toFixed(2)} บาท`}
+      </button>
+      {verify.state === 'bad' && verify.message && (
+        <div className="bs-alert bad" style={{ marginTop: 10, textAlign: 'center' }}>
+          {verify.message}{verify.triesLeft > 0 ? ` (อัปได้อีก ${verify.triesLeft} ครั้ง)` : ''}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // พร้อมเพย์ธนาคารร้าน: สแกนจ่าย → อัปโหลดสลิป → บอทตรวจสลิปกับธนาคาร (Slip2Go) แล้วส่งเหรียญ
 function BankPromptPayCard({ pending, onDone, onCancel }) {
   const canvasRef = useRef(null);
@@ -602,6 +668,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   // idle = รอโอน/อัปโหลด, checking = กำลังตรวจ, paid, review = ร้านตรวจไอดีใหม่, locked
   const [status, setStatus] = useState('idle');
   const [bonus, setBonus] = useState(0);
+  const [verify, setVerify] = useState(null);
   const [msg, setMsg] = useState('');
   const [msgBad, setMsgBad] = useState(false);
   // QR ใช้ได้ 10 นาที (กันเซฟ QR ไว้ให้คนอื่นจ่ายทีหลัง) หมดแล้วยังอัปโหลดสลิปได้ถ้าโอนไปแล้ว
@@ -656,6 +723,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         }
         if (d.status === 'paid') setStatus('paid'); // ถามต่อจนบอทส่งเหรียญเสร็จ
         if (d.status === 'review') setStatus((s) => (s === 'checking' ? s : 'review'));
+        setVerify(d.status === 'review' && d.verify ? d.verify : null); // ร้านกด 📎 ขอสลิปยืนยัน 0.10 บาท
         // บอทกำลังรอธนาคารยืนยันสลิป (ตรวจซ้ำเองทุกไม่กี่นาที)
         if (d.status === 'checking') setStatus((s) => (s === 'checking' ? s : 'bankwait'));
         // บอทตรวจซ้ำเองแล้วไม่ผ่าน / ร้านกด "ขอสลิปใหม่" (ร้านสั่ง 12 พ.ย.) → กลับไปหน้าอัปโหลด
@@ -808,6 +876,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               <a className="bs-btn" style={{ flex: 1, background: '#0084FF', color: '#fff' }} href={MESSENGER_URL} target="_blank" rel="noopener noreferrer">Messenger</a>
             </div>
             <div className="bs-cap" style={{ marginTop: 8 }}>ไม่ต้องอัปโหลดซ้ำ หน้านี้จะเปลี่ยนเองเมื่อส่งเหรียญ</div>
+            {verify && <VerifyBox pending={pending} verify={verify} onState={setVerify} />}
           </div>
         ) : review ? (
           <div className="bs-alert warn" style={{ display: 'flex', gap: 8 }}>
