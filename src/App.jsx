@@ -548,6 +548,8 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-codenote{margin-top:6px;font-size:12px;color:var(--muted)}
 .bs-steps{list-style:none;padding:0;margin:0;display:grid;gap:12px}
 .bs-steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink)}
+.bs-memo-hint{display:block;margin-top:7px;padding:9px 11px;border-radius:11px;background:rgba(245,184,28,.14);border:1.5px solid rgba(245,184,28,.55);font-weight:800;color:var(--ink);line-height:1.5}
+.bs-memo-hint b{color:#f5b81c}
 .bs-steps li i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--card);font:700 12px/22px Prompt,sans-serif;text-align:center;font-style:normal}
 .bs-verify{margin-top:14px;padding:14px;border-radius:16px;background:var(--card);border:1.5px solid var(--line);color:var(--ink)}
 .bs-note{display:flex;align-items:center;gap:8px;margin-top:6px;padding:8px 8px 8px 12px;border:1.5px dashed var(--line);border-radius:12px;background:var(--card)}
@@ -907,7 +909,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
                   <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => setNoteCopied(true)} /></span></li>
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>กด "บันทึก QR" แล้วเข้าแอปธนาคารสแกนโอน<br />
-                <b>อย่าลืมวางข้อความในช่อง "บันทึกช่วยจำ" ก่อนยืนยันโอน</b></span></li>
+                <span className="bs-memo-hint">อย่าลืมวางข้อความในช่อง <b>"บันทึกช่วยจำ"</b> ก่อนยืนยันโอน</span></span></li>
               <li><i>{qrExpired ? 2 : 3}</i><span>โอนเสร็จแล้ว กดปุ่ม "อัปโหลดสลิป" ด้านล่าง<br />เพื่อรับเหรียญอัตโนมัติทันที</span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
