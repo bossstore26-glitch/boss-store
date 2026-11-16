@@ -20,7 +20,7 @@ function qrLabel(game, gameId) {
 // ข้อความแนะนำให้ลูกค้าวางใน "บันทึกช่วยจำ" ตอนโอน (ร้านสั่ง 14 พ.ย. · ไม่บังคับ บอทไม่ได้ตรวจ)
 // เหยื่อโกงสามเส้าที่ต้องพิมพ์ "เติม Royal ..." จะสะดุดใจ + เป็นหลักฐานบนสลิป
 function slipNote(game, gameId) {
-  return `เติม ${gameOf(game).name.replace(/\s*Game$/i, '')} ไอดี ${gameId} เพจBOSS STORE`;
+  return `เติม ${gameOf(game).name.replace(/\s*Game$/i, '')} ไอดี ${gameId} เพจ BOSS STORE`;
 }
 
 async function copyToClipboard(text) {
@@ -38,7 +38,7 @@ async function copyToClipboard(text) {
 
 const MEMO_STEP = (<>ก่อนกดโอนเงิน จะมีช่อง <b>"บันทึก/บันทึกช่วยจำ"</b><br />ให้คัดลอกข้อความข้อ 1 วางก่อนโอนเงิน</>);
 
-function SlipNote({ game, gameId, text }) {
+function SlipNote({ game, gameId, text, onCopied }) {
   const note = text || slipNote(game, gameId);
   const [copied, setCopied] = useState(false);
   return (
@@ -47,6 +47,7 @@ function SlipNote({ game, gameId, text }) {
       <button type="button" className="bs-note-btn" onClick={async () => {
         await copyToClipboard(note);
         setCopied(true);
+        if (onCopied) onCopied();
         setTimeout(() => setCopied(false), 2000);
       }}>{copied ? 'คัดลอกแล้ว ✓' : 'คัดลอก'}</button>
     </div>
@@ -674,6 +675,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   const [status, setStatus] = useState('idle');
   const [bonus, setBonus] = useState(0);
   const [verify, setVerify] = useState(null);
+  const [noteCopied, setNoteCopied] = useState(false);  // กดคัดลอกบันทึกแล้ว → ค่อยโชว์ปุ่มบันทึกภาพ QR
   const [msg, setMsg] = useState('');
   const [msgBad, setMsgBad] = useState(false);
   // QR ใช้ได้ 10 นาที (กันเซฟ QR ไว้ให้คนอื่นจ่ายทีหลัง) หมดแล้วยังอัปโหลดสลิปได้ถ้าโอนไปแล้ว
@@ -848,6 +850,9 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
             <p className={`bs-timer ${secondsLeft <= 60 ? 'low' : ''}`}>
               เหลือ<b>{Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</b>นาทีก่อน QR หมดอายุ
             </p>
+            {noteCopied && (
+              <button type="button" onClick={saveQr} className="bs-btn" style={{ marginTop: 6, width: '100%' }}>📥 บันทึกภาพ QR</button>
+            )}
           </>
         )}
         {!paid && !review && qrExpired && (
@@ -897,13 +902,13 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           <>
             <ol className="bs-steps">
               {!qrExpired && (
-                <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกข้อความนี้
+                <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>กดปุ่ม "คัดลอก" ข้อความด้านล่างไว้ก่อน
                   <br /><b style={{ color: 'var(--red, #dc2626)' }}>ต้องบันทึกในสลิป เพื่อให้ระบบส่งเหรียญอัตโนมัติ</b>
-                  <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
+                  <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => setNoteCopied(true)} /></span></li>
               )}
-              <li><i>{qrExpired ? 1 : 2}</i><span>บันทึกภาพ QR แล้วสแกนโอน<br />ภายใน 10 นาที (ยอดต้องตรง <b>{money} บาท</b>)</span></li>
-              {!qrExpired && <li><i>3</i><span>{MEMO_STEP}</span></li>}
-              <li><i>{qrExpired ? 2 : 4}</i><span>กดปุ่ม "อัปโหลดสลิป" ด้านล่าง<br />เพื่อรับเหรียญอัตโนมัติ</span></li>
+              <li><i>{qrExpired ? 1 : 2}</i><span>กด "บันทึก QR" แล้วเข้าแอปธนาคารสแกนโอน (<b>{money} บาท</b>)<br />
+                <b>อย่าลืมวางข้อความในช่อง "บันทึกช่วยจำ" ก่อนยืนยันโอน</b></span></li>
+              <li><i>{qrExpired ? 2 : 3}</i><span>โอนเสร็จแล้ว กดปุ่ม "อัปโหลดสลิป" ด้านล่างเพื่อรับเหรียญทันที</span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
             <button
@@ -936,7 +941,6 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
         ) : (
           <>
-            {!qrExpired ? <button onClick={saveQr} className="bs-link">บันทึก QR</button> : <span />}
             <button onClick={cancel} className="bs-link muted">ยกเลิก / แก้ไขยอด</button>
           </>
         )}
