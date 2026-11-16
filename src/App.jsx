@@ -36,7 +36,7 @@ async function copyToClipboard(text) {
   }
 }
 
-const MEMO_STEP = (<>ก่อนกดโอน เลือกช่อง <b>"บันทึกช่วยจำ"</b><br />แล้ววางข้อความข้อ 1</>);
+const MEMO_STEP = (<>ก่อนกดโอน เลือกช่อง <b>"บันทึกช่วยจำ"</b><br /><b>ต้องวางข้อความข้อ 1</b> ไม่งั้นไม่ส่งเหรียญ</>);
 
 function SlipNote({ game, gameId, text }) {
   const note = text || slipNote(game, gameId);
@@ -551,7 +551,9 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-verify{margin-top:14px;padding:14px;border-radius:16px;background:var(--card);border:1.5px solid var(--line);color:var(--ink)}
 .bs-note{display:flex;align-items:center;gap:8px;margin-top:6px;padding:8px 8px 8px 12px;border:1.5px dashed var(--line);border-radius:12px;background:var(--card)}
 .bs-note span{flex:1;min-width:0;font-weight:700;font-size:13px;line-height:1.4;word-break:break-word}
-.bs-note-btn{flex:none;padding:6px 12px;border-radius:999px;background:var(--ink);color:var(--card);font:700 12.5px/1.2 Prompt,sans-serif;cursor:pointer;border:0}
+.bs-note-btn{flex:none;padding:7px 14px;border-radius:999px;background:#f5b81c;color:#1c1813;font:700 13px/1.2 Prompt,sans-serif;cursor:pointer;border:0;animation:bs-copy-pulse 1.6s ease-out infinite}
+@keyframes bs-copy-pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,184,28,.55)}50%{box-shadow:0 0 0 8px rgba(245,184,28,0)}}
+@media (prefers-reduced-motion: reduce){.bs-note-btn{animation:none}}
 .bs-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
 .bs-modal{position:fixed;inset:0;z-index:50;background:rgba(20,17,13,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 .bs-modal .bs-card{width:100%;max-width:400px;max-height:92vh;overflow:auto}
@@ -896,7 +898,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
             <ol className="bs-steps">
               {!qrExpired && (
                 <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกข้อความนี้
-                  <br /><b style={{ color: 'var(--red, #dc2626)' }}>เติมครั้งแรก/ไอดีใหม่ ต้องใส่ ไม่งั้นส่งเหรียญช้า</b>
+                  <br /><b style={{ color: 'var(--red, #dc2626)' }}>ต้องบันทึกในสลิป ไม่งั้นร้านไม่ส่งเหรียญ</b>
                   <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>บันทึกภาพ QR แล้วสแกนโอน<br />ภายใน 10 นาที (ยอดต้องตรง <b>{money} บาท</b>)</span></li>
