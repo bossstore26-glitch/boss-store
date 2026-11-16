@@ -36,7 +36,7 @@ async function copyToClipboard(text) {
   }
 }
 
-const MEMO_STEP = (<>ก่อนกดโอน เลือกช่อง <b>"บันทึกช่วยจำ"</b><br /><b>ต้องวางข้อความข้อ 1</b> ไม่งั้นไม่ส่งเหรียญ</>);
+const MEMO_STEP = (<>ก่อนกดโอนเงิน จะมีช่อง <b>"บันทึก/บันทึกช่วยจำ"</b><br />ให้คัดลอกข้อความข้อ 1 วางก่อนโอนเงิน</>);
 
 function SlipNote({ game, gameId, text }) {
   const note = text || slipNote(game, gameId);
@@ -898,7 +898,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
             <ol className="bs-steps">
               {!qrExpired && (
                 <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกข้อความนี้
-                  <br /><b style={{ color: 'var(--red, #dc2626)' }}>ต้องบันทึกในสลิป ไม่งั้นร้านไม่ส่งเหรียญ</b>
+                  <br /><b style={{ color: 'var(--red, #dc2626)' }}>ต้องบันทึกในสลิป เพื่อให้ระบบส่งเหรียญอัตโนมัติ</b>
                   <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>บันทึกภาพ QR แล้วสแกนโอน<br />ภายใน 10 นาที (ยอดต้องตรง <b>{money} บาท</b>)</span></li>
