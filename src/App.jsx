@@ -909,7 +909,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
                   <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => setNoteCopied(true)} /></span></li>
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>กด "บันทึก QR" แล้วเข้าแอปธนาคารสแกนโอน<br />
-                <span className="bs-memo-hint">อย่าลืมวางข้อความในช่อง <b>"บันทึกช่วยจำ"</b> ก่อนยืนยันโอน</span></span></li>
+                <span className="bs-memo-hint">อย่าลืมวางข้อความในช่อง <b>"บันทึกช่วยจำ"</b><br />ก่อนยืนยันโอน</span></span></li>
               <li><i>{qrExpired ? 2 : 3}</i><span>โอนเสร็จแล้ว กดปุ่ม "อัปโหลดสลิป" ด้านล่าง<br />เพื่อรับเหรียญอัตโนมัติทันที</span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
