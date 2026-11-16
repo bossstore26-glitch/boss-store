@@ -548,8 +548,8 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-codenote{margin-top:6px;font-size:12px;color:var(--muted)}
 .bs-steps{list-style:none;padding:0;margin:0;display:grid;gap:12px}
 .bs-steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink)}
-.bs-memo-hint{display:block;margin-top:7px;padding:9px 11px;border-radius:11px;background:rgba(245,184,28,.14);border:1.5px solid rgba(245,184,28,.55);font-weight:800;color:var(--ink);line-height:1.5}
-.bs-memo-hint b{color:#f5b81c}
+.bs-memo-hint{display:block;margin-top:8px;padding:10px 12px;border-radius:12px;background:#f5b81c;color:#1c1813;font-weight:800;line-height:1.5;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.bs-memo-hint b{color:#1c1813;text-decoration:underline;text-underline-offset:3px}
 .bs-steps li i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--card);font:700 12px/22px Prompt,sans-serif;text-align:center;font-style:normal}
 .bs-verify{margin-top:14px;padding:14px;border-radius:16px;background:var(--card);border:1.5px solid var(--line);color:var(--ink)}
 .bs-note{display:flex;align-items:center;gap:8px;margin-top:6px;padding:8px 8px 8px 12px;border:1.5px dashed var(--line);border-radius:12px;background:var(--card)}
