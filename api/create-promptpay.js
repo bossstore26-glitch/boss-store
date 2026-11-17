@@ -56,6 +56,7 @@ export default async function handler(req, res) {
   const gameId = String(req.body?.gameId ?? '').trim();
   const amount = Number(req.body?.amount);
   const game = String(req.body?.game ?? 'royal');
+  const bank = String(req.body?.bank ?? '').replace(/\D/g, '');
 
   if (!GAMES[game]) {
     return res.status(400).json({ error: 'ไม่รู้จักเกมนี้' });
@@ -66,6 +67,9 @@ export default async function handler(req, res) {
   const min = minBaht(game);
   if (!Number.isInteger(amount) || amount < min || amount > MAX_BAHT) {
     return res.status(400).json({ error: `กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${min}–${MAX_BAHT.toLocaleString()} บาท` });
+  }
+  if (!/^\d{10}$/.test(bank)) {
+    return res.status(400).json({ error: 'กรุณากรอกเลขบัญชีธนาคารที่จะโอน ให้ครบ 10 หลัก' });
   }
   const closed = await checkOpen(game, GAMES[game].name, 'promptpay');
   if (closed) return res.status(closed.status).json(closed.body);
@@ -81,7 +85,7 @@ export default async function handler(req, res) {
     const r = await fetch(`${String(bot || '').replace(/\/$/, '')}/shop/pp/new`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
-      body: JSON.stringify({ code, game, gameId, amount }),
+      body: JSON.stringify({ code, game, gameId, amount, bank }),
       signal: AbortSignal.timeout(8000),
     });
     const d = await r.json();
@@ -99,6 +103,7 @@ export default async function handler(req, res) {
     chips,
     gameId,
     game,
+    bank,
     verified: idInfo.verified, // ไอดีใหม่ → ร้านตรวจก่อนส่งครั้งแรก
     qrExpiresAt: Math.floor(Date.now() / 1000) + QR_MINUTES * 60, // QR หายจากหน้าเว็บ
     expiresAt: Math.floor(Date.now() / 1000) + UPLOAD_HOURS * 3600, // อัปโหลดสลิปได้ถึงเมื่อไร
