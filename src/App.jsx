@@ -1321,7 +1321,7 @@ export default function App() {
 
   // ยืนยันไอดีแล้ว → สร้าง QR PromptPay / ลิงก์ TrueMoney แล้วแสดงบนหน้านี้เลย
   const createPayment = async () => {
-    if (method !== 'truemoney' && !/^\d{10}$/.test(bankAcc)) {
+    if (method !== 'truemoney' && !/^\d{10,15}$/.test(bankAcc)) {
       setBankTouched(true);  // ขอบแดง + ข้อความเตือนใต้ช่อง
       return;
     }
@@ -1442,18 +1442,18 @@ export default function App() {
                   id="bankAcc"
                   type="tel"
                   inputMode="numeric"
-                  maxLength={10}
+                  maxLength={15}
                   value={bankAcc}
-                  onChange={(e) => { setBankAcc(e.target.value.replace(/\D/g, '').slice(0, 10)); setBankTouched(true); }}
+                  onChange={(e) => { setBankAcc(e.target.value.replace(/\D/g, '').slice(0, 15)); setBankTouched(true); }}
                   onBlur={() => setBankTouched(true)}
                   placeholder="กรอก 10 หลัก เช่น 1234567890"
-                  aria-invalid={bankTouched && bankAcc.length !== 10}
+                  aria-invalid={bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15)}
                   style={{
                     width: '100%', padding: '13px 14px', borderRadius: 14,
-                    border: `2px solid ${bankTouched && bankAcc.length !== 10 ? 'var(--red)' : 'var(--line)'}`,
-                    background: bankTouched && bankAcc.length !== 10 ? 'var(--bad-bg)' : 'var(--card2)',
+                    border: `2px solid ${bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15) ? 'var(--red)' : 'var(--line)'}`,
+                    background: bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15) ? 'var(--bad-bg)' : 'var(--card2)',
                     color: 'var(--ink)', fontSize: 17, letterSpacing: 1.2, fontWeight: 700,
-                    boxShadow: bankTouched && bankAcc.length !== 10 ? '0 0 0 3px rgba(220,38,38,.15)' : 'none',
+                    boxShadow: bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15) ? '0 0 0 3px rgba(220,38,38,.15)' : 'none',
                     outline: 'none',
                   }}
                 />
@@ -1477,7 +1477,7 @@ export default function App() {
                   </div>
                 )}
 
-                {bankTouched && bankAcc.length !== 10 ? (
+                {bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15) ? (
                   <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--red)', fontWeight: 700 }}>
                     ⚠️ {t('bankErr')}
                   </div>
