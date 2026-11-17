@@ -422,6 +422,9 @@ html,body{background:var(--bg)!important}
 .bs-wrap{width:100%;max-width:440px}
 .bs-card{background:var(--card);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:22px 20px}
 .bs-head{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  @media (min-width:480px){.bs-head{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .bs-brandrow{flex:0 0 auto}
+    .bs-toolrow{flex:1 1 auto;justify-content:flex-end}}
   .bs-brandrow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
   .bs-toolrow{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;row-gap:6px}
 .bs-logo{display:flex;align-items:center;gap:8px;font:800 17px/1 Prompt,sans-serif;letter-spacing:.2px;color:var(--ink);white-space:nowrap;flex:none}
