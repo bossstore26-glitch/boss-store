@@ -68,8 +68,8 @@ export default async function handler(req, res) {
   if (!Number.isInteger(amount) || amount < min || amount > MAX_BAHT) {
     return res.status(400).json({ error: `กรุณาระบุจำนวนเงินเป็นจำนวนเต็ม ${min}–${MAX_BAHT.toLocaleString()} บาท` });
   }
-  if (!/^\d{10}$/.test(bank)) {
-    return res.status(400).json({ error: 'กรุณากรอกเลขบัญชีธนาคารที่จะโอน ให้ครบ 10 หลัก' });
+  if (!/^\d{10,15}$/.test(bank)) {
+    return res.status(400).json({ error: 'กรุณากรอกเลขบัญชี/พร้อมเพย์ 10–15 หลัก' });
   }
   const closed = await checkOpen(game, GAMES[game].name, 'promptpay');
   if (closed) return res.status(closed.status).json(closed.body);
