@@ -623,7 +623,7 @@ function VerifyBox({ pending, verify, onState }) {
       const r = await fetch('/api/promptpay-slip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: pending.id, image, verify: true }),
+        body: JSON.stringify({ code: pending.id, image, verify: true, bank: pending.bank || '' }),
       });
       const d = await r.json();
       onState({ ...verify, state: d.status === 'ok' ? 'ok' : 'bad', message: d.message || '' });
@@ -757,7 +757,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
       const r = await fetch('/api/promptpay-slip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: pending.id, image }),
+        body: JSON.stringify({ code: pending.id, image, bank: pending.bank || '' }),
       });
       const d = await r.json();
       setMsg(d.message || '');
@@ -1139,6 +1139,7 @@ export default function App() {
   };
   const [method, setMethod] = useState('promptpay');
   const [customAmount, setCustomAmount] = useState('');
+  const [bankAcc, setBankAcc] = useState('');  // เลขบัญชี 10 หลักของลูกค้า (บังคับกรอกตอนจ่ายพร้อมเพย์)
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(loadPending);
   const [showPackages, setShowPackages] = useState(false);
@@ -1288,6 +1289,10 @@ export default function App() {
 
   // ยืนยันไอดีแล้ว → สร้าง QR PromptPay / ลิงก์ TrueMoney แล้วแสดงบนหน้านี้เลย
   const createPayment = async () => {
+    if (method !== 'truemoney' && !/^\d{10}$/.test(bankAcc)) {
+      alert('กรุณากรอกเลขบัญชีธนาคารที่จะโอน ให้ครบ 10 หลัก');
+      return;
+    }
     setConfirming(false);
     setLoading(true);
 
@@ -1295,7 +1300,7 @@ export default function App() {
       const response = await fetch(method === 'truemoney' ? '/api/create-truemoney' : '/api/create-promptpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId, amount: baht, game })
+        body: JSON.stringify({ gameId, amount: baht, game, bank: method === 'truemoney' ? '' : bankAcc })
       });
 
       const data = await response.json();
@@ -1394,6 +1399,27 @@ export default function App() {
               <span className="bs-gold" style={{ fontWeight: 700 }}>{formatChips(chipsAmount, game)} เหรียญ</span>·
               <span>{method === 'truemoney' ? 'TrueMoney' : 'พร้อมเพย์'}</span>
             </div>
+
+            {method !== 'truemoney' && (
+              <div style={{ marginTop: 12 }}>
+                <label htmlFor="bankAcc" className="bs-muted" style={{ fontSize: 12.5, fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                  เลขบัญชีธนาคารที่จะใช้โอน (10 หลัก)
+                </label>
+                <input
+                  id="bankAcc"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={bankAcc}
+                  onChange={(e) => setBankAcc(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="เช่น 1234567890"
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: 14, border: '1.5px solid var(--line)', background: 'var(--card2)', color: 'var(--ink)', fontSize: 16, letterSpacing: 1 }}
+                />
+                <div className="bs-muted" style={{ fontSize: 11.5, marginTop: 5 }}>
+                  ใช้ตรวจว่าเป็นบัญชีของคุณจริง — กรอกผิด ระบบจะกักออเดอร์ให้ร้านตรวจ
+                </div>
+              </div>
+            )}
 
             {method !== 'truemoney' && (
               <div className="bs-alert warn" style={{ marginTop: 10 }}>
