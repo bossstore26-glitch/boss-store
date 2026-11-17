@@ -3,6 +3,7 @@ import { ShoppingBag, CreditCard, ShieldCheck, ArrowRight, CheckCircle2, Loader2
 import QRCode from 'qrcode';
 // ตารางเรทเดียวกับ server (server เป็นตัวตัดสินจริง หน้าเว็บใช้แสดงผล)
 import { GAMES, GAME_KEYS, MAX_BAHT, chipsFor, rateNote, formatChips, minBaht, gameOf } from '../api/_rates.js';
+import { t, LangSwitch, currentLang } from './i18n.jsx';
 
 const POLL_MS = 3000;
 const STORAGE_KEY = 'bossstore_pending_qr';
@@ -17,7 +18,7 @@ function qrLabel(game, gameId) {
   return [`เติม ${gameOf(game).name}`, `ID ${gameId}`, 'ร้าน BOSS STORE'];
 }
 
-// ข้อความแนะนำให้ลูกค้าวางใน "บันทึกช่วยจำ" ตอนโอน (ร้านสั่ง 14 พ.ย. · ไม่บังคับ บอทไม่ได้ตรวจ)
+// ข้อความแนะนำให้ลูกค้าวางใน {t('memoName')} ตอนโอน (ร้านสั่ง 14 พ.ย. · ไม่บังคับ บอทไม่ได้ตรวจ)
 // เหยื่อโกงสามเส้าที่ต้องพิมพ์ "เติม Royal ..." จะสะดุดใจ + เป็นหลักฐานบนสลิป
 function slipNote(game, gameId) {
   return `เติม ${gameOf(game).name.replace(/\s*Game$/i, '')} ไอดี ${gameId} เพจ BOSS STORE`;
@@ -355,7 +356,7 @@ function PaymentCard({ pending, onDone, onCancel }) {
       </div>
       <div className="bs-row" style={{ marginTop: 14, justifyContent: 'center', gap: 20 }}>
         {paid || dead ? (
-          <button onClick={onDone} className="bs-link">{paid ? 'เติมเพิ่ม' : 'สร้าง QR ใหม่'}</button>
+          <button onClick={onDone} className="bs-link">{paid ? t('addMore') : t('newQr')}</button>
         ) : (
           <>
             <button onClick={saveQr} className="bs-link">บันทึก QR</button>
@@ -596,7 +597,8 @@ function Header({ theme, onToggle, right }) {
         </a>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {right || <span className="bs-pill"><span className="bs-dot" aria-hidden="true" />24 ชม.</span>}
+        {right || <span className="bs-pill"><span className="bs-dot" aria-hidden="true" />{t('h24')}</span>}
+        <LangSwitch />
         {onToggle && <ThemeToggle theme={theme} onToggle={onToggle} />}
       </div>
     </div>
@@ -623,7 +625,7 @@ function VerifyBox({ pending, verify, onState }) {
       const r = await fetch('/api/promptpay-slip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: pending.id, image, verify: true, bank: pending.bank || '' }),
+        body: JSON.stringify({ code: pending.id, image, verify: true, bank: pending.bank || '', lang: currentLang() }),
       });
       const d = await r.json();
       onState({ ...verify, state: d.status === 'ok' ? 'ok' : 'bad', message: d.message || '' });
@@ -757,7 +759,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
       const r = await fetch('/api/promptpay-slip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: pending.id, image, bank: pending.bank || '' }),
+        body: JSON.stringify({ code: pending.id, image, bank: pending.bank || '', lang: currentLang() }),
       });
       const d = await r.json();
       setMsg(d.message || '');
@@ -841,8 +843,8 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         fallbackAt={pending.qrExpiresAt ? (pending.qrExpiresAt - 10 * 60 + 3 * 60) * 1000 : 0} />
 
       <div className="bs-qrbox">
-        <div className="bs-muted" style={{ fontSize: 12.5 }}>ยอดที่ต้องโอน (ต้องตรงตามนี้)</div>
-        <div className="big">{money}<small>บาท</small></div>
+        <div className="bs-muted" style={{ fontSize: 12.5 }}>{t('payAmount')} ({t('mustMatch')})</div>
+        <div className="big">{money}<small>{t('bahtUnit')}</small></div>
         <div className="bs-gold" style={{ font: '700 14px/1.4 Prompt,sans-serif' }}>{formatChips(pending.chips, pending.game)} เหรียญ</div>
         {!paid && !review && !qrExpired && (
           <>
@@ -850,17 +852,17 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               <canvas ref={canvasRef} className="w-60 h-auto sm:w-64 block" />
             </div>
             <p className={`bs-timer ${secondsLeft <= 60 ? 'low' : ''}`}>
-              เหลือ<b>{Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</b>นาทีก่อน QR หมดอายุ
+              เหลือ<b>{Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</b>{t('qrExpiresIn')}
             </p>
             {noteCopied && (
-              <button type="button" onClick={saveQr} className="bs-btn" style={{ marginTop: 6, width: '100%' }}>📥 บันทึกภาพ QR</button>
+              <button type="button" onClick={saveQr} className="bs-btn" style={{ marginTop: 6, width: '100%' }}>📥 {t('saveQr')}</button>
             )}
           </>
         )}
         {!paid && !review && qrExpired && (
           <div className="bs-alert bad" style={{ marginTop: 12, textAlign: 'center' }}>
-            <b>QR หมดอายุแล้ว (ใช้ได้ 10 นาที)</b>
-            <div style={{ fontSize: 12, marginTop: 4 }}>ยังไม่ได้โอน → สร้าง QR ใหม่ · โอนไปแล้ว → อัปโหลดสลิปด้านล่าง</div>
+            <b>{t('qrExpiredTitle')}</b>
+            <div style={{ fontSize: 12, marginTop: 4 }}>{t('qrExpiredHint')}</div>
             <button type="button" onClick={() => { savePending(null); onCancel(); }} className="bs-btn ghost" style={{ marginTop: 10 }}>
               สร้าง QR ใหม่
             </button>
@@ -872,20 +874,20 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         {paid ? (
           <div className="bs-alert good" style={{ display: 'flex', gap: 8 }}>
             <CheckCircle2 className="w-5 h-5 shrink-0" />
-            <span>ตรวจสลิปผ่าน ระบบกำลังส่งเหรียญเข้าไอดีของคุณ (ปกติไม่เกิน 2–3 นาที)</span>
+            <span>{t('sendingCoins')}</span>
           </div>
         ) : review && !bankwait ? (
           // ร้านสั่ง 14 พ.ย.: ถูกกักตรวจ (ไอดีใหม่/ชื่อไม่ตรง) → ให้ทักเพจส่งสลิปที่มีบันทึกช่วยจำ ยืนยันว่าโอนเองจริง
           <div className="bs-alert warn">
-            <b>ได้รับเงินแล้ว ✅ เติมครั้งแรกต้องยืนยันตัวตน</b>
+            <b>✅ {t('firstVerify')}</b>
             <div style={{ marginTop: 6, lineHeight: 1.6 }}>
-              กรุณาทักข้อความแชทที่ร้าน
+              {t('chatShop')}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <a className="bs-btn" style={{ flex: 1, background: '#06C755', color: '#fff' }} href={LINE_OA_URL} target="_blank" rel="noopener noreferrer">LINE</a>
               <a className="bs-btn" style={{ flex: 1, background: '#0084FF', color: '#fff' }} href={MESSENGER_URL} target="_blank" rel="noopener noreferrer">Messenger</a>
             </div>
-            <div className="bs-cap" style={{ marginTop: 8 }}>ไม่ต้องอัปโหลดซ้ำ หน้านี้จะเปลี่ยนเองเมื่อส่งเหรียญ</div>
+            <div className="bs-cap" style={{ marginTop: 8 }}>{t('noReupload')}</div>
             {verify && <VerifyBox pending={pending} verify={verify} onState={setVerify} />}
           </div>
         ) : review ? (
@@ -893,24 +895,24 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
             <Loader2 className="w-5 h-5 shrink-0 bs-spin" />
             <span>
               {bankwait
-                ? 'ได้รับสลิปแล้ว ⏳ กำลังรอธนาคารยืนยันรายการ (ปกติ 1–10 นาที)'
+                ? `${t('waitBank')}`
                 : msg && !msgBad
                   ? msg
-                  : 'ได้รับเงินแล้ว ✅ ร้านกำลังตรวจสอบไอดีก่อนส่งเหรียญ (ลูกค้าใหม่ตรวจครั้งแรกครั้งเดียว ครั้งต่อไปได้ทันที)'}
-              <br />ไม่ต้องอัปโหลดซ้ำ หน้านี้จะเปลี่ยนเองเมื่อส่งเหรียญ
+                  : `✅ ${t('paidReview')}`}
+              <br />{t('noReupload')}
             </span>
           </div>
         ) : (
           <>
             <ol className="bs-steps">
               {!qrExpired && (
-                <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>กดปุ่ม "คัดลอก" ข้อความด้านล่างไว้ก่อน
-                  <br /><b style={{ color: 'var(--red, #dc2626)' }}>ต้องบันทึกในสลิป เพื่อให้ระบบส่งเหรียญอัตโนมัติ</b>
+                <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>{t('step1a')}
+                  <br /><b style={{ color: 'var(--red, #dc2626)' }}>{t('step1b')}</b>
                   <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => setNoteCopied(true)} /></span></li>
               )}
-              <li><i>{qrExpired ? 1 : 2}</i><span>กด "บันทึก QR" แล้วสแกนโอน (<b>{money} บาท</b>)<br />
-                <span className="bs-memo-hint">อย่าลืมวางข้อความในช่อง <b>"บันทึกช่วยจำ"</b></span></span></li>
-              <li><i>{qrExpired ? 2 : 3}</i><span>โอนเสร็จแล้ว กดปุ่ม "อัปโหลดสลิป" ด้านล่าง<br />เพื่อ<b style={{ color: 'var(--good, #22c55e)' }}>รับเหรียญอัตโนมัติทันที</b></span></li>
+              <li><i>{qrExpired ? 1 : 2}</i><span>{t('step2')} (<b>{money} บาท</b>)<br />
+                <span className="bs-memo-hint">{t('memoHint')} <b>"บันทึกช่วยจำ"</b></span></span></li>
+              <li><i>{qrExpired ? 2 : 3}</i><span>{t('step3')}<br />เพื่อ<b style={{ color: 'var(--good, #22c55e)' }}>{t('step3b')}</b></span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
             <button
@@ -920,14 +922,14 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               className={`bs-btn primary ${nudgeUpload && !checking && !locked ? 'upload-nudge' : ''}`}
               style={{ marginTop: 18 }}
             >
-              {checking ? (<><Loader2 className="w-5 h-5 bs-spin" /> กำลังตรวจสลิปกับธนาคาร...</>) : 'อัปโหลดสลิป'}
+              {checking ? (<><Loader2 className="w-5 h-5 bs-spin" /> {t('checkingSlip')}</>) : t('upload')}
             </button>
             {msg && (
               <div className={`bs-alert ${msgBad ? 'bad' : 'good'}`} style={{ marginTop: 10, textAlign: 'center' }}>{msg}</div>
             )}
             <p className="bs-cap" style={{ marginTop: 10, lineHeight: 1.6 }}>
-              สลิปปลอม สลิปซ้ำ หรือยอดไม่ตรง ระบบจะไม่ส่งเหรียญ
-              <br />อัปโหลดได้ภายใน 24 ชม. (ปิดหน้านี้แล้วกลับมาใหม่ได้)
+              {t('uploadHint')}
+              <br />{t('uploadHint2')}
             </p>
           </>
         )}
@@ -937,13 +939,13 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         {paid ? (
           <>
             <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
-            <button onClick={onDone} className="bs-link">เติมเพิ่ม</button>
+            <button onClick={onDone} className="bs-link">{t('addMore')}</button>
           </>
         ) : review ? (
           <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
         ) : (
           <>
-            <button onClick={cancel} className="bs-link muted">ยกเลิก / แก้ไขยอด</button>
+            <button onClick={cancel} className="bs-link muted">{t('cancelEdit')}</button>
           </>
         )}
       </div>
@@ -1318,7 +1320,7 @@ export default function App() {
       const response = await fetch(method === 'truemoney' ? '/api/create-truemoney' : '/api/create-promptpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId, amount: baht, game, bank: method === 'truemoney' ? '' : bankAcc })
+        body: JSON.stringify({ gameId, amount: baht, game, bank: method === 'truemoney' ? '' : bankAcc, lang: currentLang() })
       });
 
       const data = await response.json();
@@ -1375,8 +1377,8 @@ export default function App() {
       {confirming && (
         <div className="bs-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={() => setConfirming(false)}>
           <div className="bs-card" onClick={(e) => e.stopPropagation()}>
-            <h2 id="confirm-title" className="bs-h2">ตรวจไอดีให้ถูกก่อนจ่าย</h2>
-            <p className="bs-sub" style={{ marginTop: 4 }}>ถ้าไอดีผิด เหรียญจะถูกส่งไปไอดีอื่นและเรียกคืนไม่ได้</p>
+            <h2 id="confirm-title" className="bs-h2">{t('confirmTitle')}</h2>
+            <p className="bs-sub" style={{ marginTop: 4 }}>{t('confirmWarn')}</p>
 
             <div className="bs-qrbox" style={{ marginTop: 14, textAlign: 'center', background: 'var(--card2)' }}>
               <div className="bs-muted" style={{ fontSize: 12 }}>ไอดีผู้เล่น {gameInfo.name}</div>
@@ -1390,9 +1392,9 @@ export default function App() {
             )}
             {playerCheck.status === 'found' && (
               <div className="bs-alert good" style={{ marginTop: 10 }}>
-                <b>✓ เจอไอดีนี้ในเกม — ใช่ตัวละครของคุณไหม?</b>
+                <b>✓ {t('found')}</b>
                 <img src={playerCheck.image} alt={`ตัวละครในเกม ไอดี ${gameId}`} className="mx-auto w-full max-w-[300px] rounded-lg" style={{ marginTop: 8 }} />
-                <div className="bs-muted" style={{ fontSize: 12, marginTop: 6 }}>ถ้าไม่ใช่ชื่อตัวละครของคุณ กด "แก้ไขไอดี"</div>
+                <div className="bs-muted" style={{ fontSize: 12, marginTop: 6 }}>{t('foundHint')}</div>
               </div>
             )}
             {playerCheck.status === 'not_found' && (
@@ -1421,7 +1423,7 @@ export default function App() {
             {method !== 'truemoney' && (
               <div style={{ marginTop: 12 }}>
                 <label htmlFor="bankAcc" style={{ fontSize: 14, fontWeight: 800, display: 'block', marginBottom: 6, color: 'var(--ink)' }}>
-                  เลขบัญชีธนาคารหรือพร้อมเพย์ที่ใช้โอน <span style={{ color: 'var(--red)' }}>* (10 หลัก)</span>
+                  {t('bankLabel')} <span style={{ color: 'var(--red)' }}>* {t('digit10')}</span>
                 </label>
                 <input
                   id="bankAcc"
@@ -1464,11 +1466,11 @@ export default function App() {
 
                 {bankTouched && bankAcc.length !== 10 ? (
                   <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--red)', fontWeight: 700 }}>
-                    ⚠️ ต้องกรอกเลขบัญชีหรือพร้อมเพย์ (เว้นว่างไม่ได้)
+                    ⚠️ {t('bankErr')}
                   </div>
                 ) : (
                   <div className="bs-muted" style={{ fontSize: 11.5, marginTop: 5 }}>
-                    ใช้ตรวจว่าเป็นบัญชีของคุณจริง — กรอกผิด/ไม่กรอก ระบบจะกักออเดอร์ให้ร้านตรวจ
+                    {t('bankHint')}
                   </div>
                 )}
               </div>
@@ -1476,12 +1478,12 @@ export default function App() {
 
             <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
               {playerCheck.status === 'not_found' ? (
-                <button type="button" onClick={() => setConfirming(false)} autoFocus className="bs-btn primary">แก้ไขไอดี</button>
+                <button type="button" onClick={() => setConfirming(false)} autoFocus className="bs-btn primary">{t('edit')}</button>
               ) : (
                 <>
                   <button type="button" onClick={createPayment} disabled={playerCheck.status === 'checking'} autoFocus className="bs-btn primary">
-                    {playerCheck.status === 'checking' ? 'กำลังค้นหาไอดี...'
-                      : playerCheck.status === 'found' ? 'ใช่ ตัวละครนี้ ดำเนินการต่อ' : 'ไอดีถูกต้อง ดำเนินการต่อ'}
+                    {playerCheck.status === 'checking' ? t('checking')
+                      : playerCheck.status === 'found' ? t('contFound') : t('cont')}
                   </button>
                   <button type="button" onClick={() => setConfirming(false)} className="bs-btn ghost">แก้ไขไอดี</button>
                 </>
@@ -1497,14 +1499,14 @@ export default function App() {
       )}
 
       <div className="bs-titlerow">
-        <h1 className="bs-h1">เติมเหรียญ<br />เข้าไอดีในเกม</h1>
+        <h1 className="bs-h1">{t('h1a')}<br />{t('h1b')}</h1>
         {/* เตือนโกงสามเส้า (ร้านขอ 12 พ.ย. ย้ายมาที่ว่างขวาบน · ใจความเดิม 8 พ.ย.) */}
         <div className="bs-scam" role="note">
           <span aria-hidden="true">⚠️</span>
-          <b>ไอดีเกมไม่ใช่ของคุณ ห้ามจ่าย = มิจฉาชีพ</b>
+          <b>{t('scam')}</b>
         </div>
       </div>
-      <p className="bs-sub">เลือกเกม กรอกไอดี จ่ายผ่านพร้อมเพย์หรือทรูมันนี่ รับเหรียญใน 2 นาที</p>
+      <p className="bs-sub">{t('sub')}</p>
 
       <form onSubmit={handleCheckout} style={{ marginTop: 18, display: 'grid', gap: 18 }}>
         {/* เลือกเกม */}
@@ -1515,10 +1517,10 @@ export default function App() {
             return (
               <button key={key} type="button" role="radio" aria-checked={on && open} disabled={!open}
                       onClick={() => { switchGame(game, key); setGame(key); setShowPackages(false); }} className="bs-opt">
-                {on && open && <span className="bs-tag">เลือกอยู่</span>}
+                {on && open && <span className="bs-tag">{t('selected')}</span>}
                 <b><span className="bs-gdot" style={{ background: key === 'siam' ? 'var(--siam)' : 'var(--royal)' }} />{GAMES[key].short}</b>
                 <span className="s" style={!open ? { color: 'var(--warn)' } : undefined}>
-                  {open ? `เริ่ม ${minBaht(key)} บาท` : 'ปิดชั่วคราว'}
+                  {open ? `${t('startFrom')} ${minBaht(key)} ${t('baht')}` : t('closedNow')}
                 </span>
               </button>
             );
@@ -1545,7 +1547,7 @@ export default function App() {
 
         {/* ไอดีเกม */}
         <div>
-          <label htmlFor="gameid" className="bs-label">ไอดีในเกม {gameInfo.short}<small>ตัวเลข 4–12 หลัก</small></label>
+          <label htmlFor="gameid" className="bs-label">{t('id')} {gameInfo.short}<small>4–12</small></label>
           <div style={{ position: 'relative' }}>
             <input
               id="gameid" type="text" inputMode="numeric" maxLength={12} value={gameId}
