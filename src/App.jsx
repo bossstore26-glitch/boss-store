@@ -1141,6 +1141,22 @@ export default function App() {
   const [customAmount, setCustomAmount] = useState('');
   const [bankAcc, setBankAcc] = useState('');  // เลขบัญชี/พร้อมเพย์ 10 หลักของลูกค้า (บังคับกรอก)
   const [bankTouched, setBankTouched] = useState(false);  // ลูกค้าลืมกรอก → ขอบแดงเตือน
+  const [bankHistory, setBankHistory] = useState([]);  // 17 พ.ย. ร้านสั่ง: จำเลขบัญชีที่เคยกรอก มากสุด 3 รายการ
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('bossstore_banks') || '[]');
+      if (Array.isArray(saved)) setBankHistory(saved.filter((x) => /^\d{10}$/.test(x)).slice(0, 3));
+    } catch { /* เพิกเฉย */ }
+  }, []);
+
+  const rememberBank = (value) => {
+    const v = String(value || '').replace(/\D/g, '');
+    if (!/^\d{10}$/.test(v)) return;
+    const next = [v, ...bankHistory.filter((x) => x !== v)].slice(0, 3);
+    setBankHistory(next);
+    try { localStorage.setItem('bossstore_banks', JSON.stringify(next)); } catch { /* เพิกเฉย */ }
+  };
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(loadPending);
   const [showPackages, setShowPackages] = useState(false);
@@ -1294,6 +1310,7 @@ export default function App() {
       setBankTouched(true);  // ขอบแดง + ข้อความเตือนใต้ช่อง
       return;
     }
+    if (method !== 'truemoney') rememberBank(bankAcc);  // เก็บประวัติไว้เลือกครั้งหน้า
     setConfirming(false);
     setLoading(true);
 
@@ -1425,9 +1442,29 @@ export default function App() {
                     outline: 'none',
                   }}
                 />
+                {bankHistory.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                    {bankHistory.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => { setBankAcc(v); setBankTouched(true); }}
+                        style={{
+                          border: `1.5px solid ${bankAcc === v ? 'var(--ink)' : 'var(--line)'}`,
+                          background: bankAcc === v ? 'var(--card)' : 'var(--card2)',
+                          color: 'var(--ink)', borderRadius: 999, padding: '7px 12px',
+                          fontSize: 12.5, fontWeight: 700, letterSpacing: .6, cursor: 'pointer',
+                        }}
+                      >
+                        🏦 {v.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {bankTouched && bankAcc.length !== 10 ? (
                   <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--red)', fontWeight: 700 }}>
-                    ⚠️ ต้องกรอกให้ครบ 10 หลัก (เว้นว่างไม่ได้) — ระบบใช้ตรวจว่าเป็นบัญชีของคุณจริง
+                    ⚠️ ต้องกรอกเลขบัญชีหรือพร้อมเพย์ (เว้นว่างไม่ได้)
                   </div>
                 ) : (
                   <div className="bs-muted" style={{ fontSize: 11.5, marginTop: 5 }}>
