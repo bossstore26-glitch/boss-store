@@ -1,3 +1,4 @@
+import React from "react";
 // ระบบแปลภาษา 3 ภาษา: ไทย (th) · อังกฤษ (en) · ลาว (lo)
 // ใช้: t('key') · เปลี่ยนภาษา: setLang('en') → บันทึก + รีโหลดหน้า
 export const LANGS = [
