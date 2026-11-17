@@ -13,10 +13,10 @@ export const GAMES = {
     packages: [
       { baht: 20, chips: 160000 }, { baht: 25, chips: 200000 }, { baht: 30, chips: 240000 },
       { baht: 35, chips: 280000 }, { baht: 40, chips: 320000 }, { baht: 45, chips: 360000 },
-      { baht: 50, chips: 400000 }, { baht: 55, chips: 450000 }, { baht: 60, chips: 520000 },
-      { baht: 65, chips: 570000 }, { baht: 70, chips: 610000 }, { baht: 75, chips: 670000 },
-      { baht: 80, chips: 720000 }, { baht: 85, chips: 760000 }, { baht: 90, chips: 810000 },
-      { baht: 95, chips: 870000 }, { baht: 100, chips: 920000 }, { baht: 110, chips: 1000000 },
+      { baht: 50, chips: 400000 }, { baht: 55, chips: 440000 }, { baht: 60, chips: 510000 },
+      { baht: 65, chips: 560000 }, { baht: 70, chips: 600000 }, { baht: 75, chips: 660000 },
+      { baht: 80, chips: 710000 }, { baht: 85, chips: 750000 }, { baht: 90, chips: 800000 },
+      { baht: 95, chips: 860000 }, { baht: 100, chips: 910000 }, { baht: 110, chips: 1000000 },
     ],
   },
   siam: {
