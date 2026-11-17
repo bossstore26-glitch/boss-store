@@ -90,25 +90,89 @@ export function t(key) {
   return (DICT[LANG] && DICT[LANG][key]) || DICT.th[key] || key;
 }
 
+const FLAG = {
+  th: (
+    <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true">
+      <rect width="18" height="12" fill="#A51931" />
+      <rect y="2" width="18" height="8" fill="#F4F5F8" />
+      <rect y="4" width="18" height="4" fill="#2D2A4A" />
+    </svg>
+  ),
+  en: (
+    <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true">
+      <rect width="18" height="12" fill="#012169" />
+      <path d="M0 0 18 12M18 0 0 12" stroke="#fff" strokeWidth="2" />
+      <path d="M9 0v12M0 6h18" stroke="#fff" strokeWidth="3.2" />
+      <path d="M9 0v12M0 6h18" stroke="#C8102E" strokeWidth="1.6" />
+    </svg>
+  ),
+  lo: (
+    <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true">
+      <rect width="18" height="12" fill="#CE1126" />
+      <rect y="3" width="18" height="6" fill="#002868" />
+      <circle cx="9" cy="6" r="2.6" fill="#fff" />
+    </svg>
+  ),
+};
+const FULL_NAME = { th: 'ไทย', en: 'English', lo: 'ລາວ' };
+
 export function LangSwitch() {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+  const cur = LANGS.find((l) => l.code === LANG) || LANGS[0];
   return (
-    <div style={{ display: 'inline-flex', gap: 2, background: 'var(--card2)', border: '1px solid var(--line)', borderRadius: 999, padding: 2 }}>
-      {LANGS.map((l) => (
-        <button
-          key={l.code}
-          type="button"
-          onClick={() => setLang(l.code)}
-          aria-pressed={LANG === l.code}
+    <div ref={ref} style={{ position: 'relative', flex: 'none' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="เปลี่ยนภาษา"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 9px',
+          background: 'var(--card2)', border: '1px solid var(--line)', borderRadius: 999,
+          color: 'var(--ink)', cursor: 'pointer', font: '700 11.5px/1 Prompt,sans-serif',
+        }}
+      >
+        <span style={{ display: 'inline-flex', borderRadius: 2, overflow: 'hidden' }}>{FLAG[cur.code]}</span>
+        {cur.label}
+        <span style={{ color: 'var(--muted)', fontSize: 9, marginTop: 1 }}>▼</span>
+      </button>
+      {open && (
+        <div
+          role="listbox"
           style={{
-            border: 0, borderRadius: 999, padding: '4px 8px', cursor: 'pointer',
-            fontSize: 11, fontWeight: 700,
-            background: LANG === l.code ? 'var(--card)' : 'transparent',
-            color: LANG === l.code ? 'var(--ink)' : 'var(--muted)',
+            position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 60, minWidth: 148,
+            background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 14,
+            boxShadow: '0 12px 30px rgba(0,0,0,.35)', padding: 6,
           }}
         >
-          {l.label}
-        </button>
-      ))}
+          {LANGS.map((l) => (
+            <button
+              key={l.code}
+              type="button"
+              role="option"
+              aria-selected={l.code === LANG}
+              onClick={() => { setOpen(false); if (l.code !== LANG) setLang(l.code); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left',
+                background: l.code === LANG ? 'var(--card2)' : 'transparent', border: 0,
+                borderRadius: 10, padding: '9px 10px', cursor: 'pointer',
+                color: 'var(--ink)', font: '600 13px/1 Prompt,sans-serif',
+              }}
+            >
+              <span style={{ display: 'inline-flex', borderRadius: 2, overflow: 'hidden' }}>{FLAG[l.code]}</span>
+              <span style={{ flex: 1 }}>{FULL_NAME[l.code]}</span>
+              {l.code === LANG && <span style={{ color: 'var(--gold, #e7b14a)', fontSize: 13 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
