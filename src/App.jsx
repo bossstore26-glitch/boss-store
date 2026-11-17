@@ -1139,7 +1139,8 @@ export default function App() {
   };
   const [method, setMethod] = useState('promptpay');
   const [customAmount, setCustomAmount] = useState('');
-  const [bankAcc, setBankAcc] = useState('');  // เลขบัญชี 10 หลักของลูกค้า (บังคับกรอกตอนจ่ายพร้อมเพย์)
+  const [bankAcc, setBankAcc] = useState('');  // เลขบัญชี/พร้อมเพย์ 10 หลักของลูกค้า (บังคับกรอก)
+  const [bankTouched, setBankTouched] = useState(false);  // ลูกค้าลืมกรอก → ขอบแดงเตือน
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(loadPending);
   const [showPackages, setShowPackages] = useState(false);
@@ -1290,7 +1291,7 @@ export default function App() {
   // ยืนยันไอดีแล้ว → สร้าง QR PromptPay / ลิงก์ TrueMoney แล้วแสดงบนหน้านี้เลย
   const createPayment = async () => {
     if (method !== 'truemoney' && !/^\d{10}$/.test(bankAcc)) {
-      alert('กรุณากรอกเลขบัญชีธนาคารที่จะโอน ให้ครบ 10 หลัก');
+      setBankTouched(true);  // ขอบแดง + ข้อความเตือนใต้ช่อง
       return;
     }
     setConfirming(false);
@@ -1402,8 +1403,8 @@ export default function App() {
 
             {method !== 'truemoney' && (
               <div style={{ marginTop: 12 }}>
-                <label htmlFor="bankAcc" className="bs-muted" style={{ fontSize: 12.5, fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                  เลขบัญชีธนาคารที่จะใช้โอน (10 หลัก)
+                <label htmlFor="bankAcc" style={{ fontSize: 14, fontWeight: 800, display: 'block', marginBottom: 6, color: 'var(--ink)' }}>
+                  เลขบัญชีธนาคารหรือพร้อมเพย์ที่ใช้โอน <span style={{ color: 'var(--red)' }}>*</span>
                 </label>
                 <input
                   id="bankAcc"
@@ -1411,20 +1412,28 @@ export default function App() {
                   inputMode="numeric"
                   maxLength={10}
                   value={bankAcc}
-                  onChange={(e) => setBankAcc(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="เช่น 1234567890"
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: 14, border: '1.5px solid var(--line)', background: 'var(--card2)', color: 'var(--ink)', fontSize: 16, letterSpacing: 1 }}
+                  onChange={(e) => { setBankAcc(e.target.value.replace(/\D/g, '').slice(0, 10)); setBankTouched(true); }}
+                  onBlur={() => setBankTouched(true)}
+                  placeholder="กรอก 10 หลัก เช่น 1234567890"
+                  aria-invalid={bankTouched && bankAcc.length !== 10}
+                  style={{
+                    width: '100%', padding: '13px 14px', borderRadius: 14,
+                    border: `2px solid ${bankTouched && bankAcc.length !== 10 ? 'var(--red)' : 'var(--line)'}`,
+                    background: bankTouched && bankAcc.length !== 10 ? 'var(--bad-bg)' : 'var(--card2)',
+                    color: 'var(--ink)', fontSize: 17, letterSpacing: 1.2, fontWeight: 700,
+                    boxShadow: bankTouched && bankAcc.length !== 10 ? '0 0 0 3px rgba(220,38,38,.15)' : 'none',
+                    outline: 'none',
+                  }}
                 />
-                <div className="bs-muted" style={{ fontSize: 11.5, marginTop: 5 }}>
-                  ใช้ตรวจว่าเป็นบัญชีของคุณจริง — กรอกผิด ระบบจะกักออเดอร์ให้ร้านตรวจ
-                </div>
-              </div>
-            )}
-
-            {method !== 'truemoney' && (
-              <div className="bs-alert warn" style={{ marginTop: 10 }}>
-                <b>📎 โอนแล้วต้องกลับมาหน้านี้เพื่ออัปโหลดสลิป</b>
-                <div style={{ fontSize: 12.5, marginTop: 2 }}>ระบบส่งเหรียญหลังตรวจสลิปเท่านั้น ไม่อัปโหลดสลิป = ยังไม่ได้รับเหรียญ</div>
+                {bankTouched && bankAcc.length !== 10 ? (
+                  <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--red)', fontWeight: 700 }}>
+                    ⚠️ ต้องกรอกให้ครบ 10 หลัก (เว้นว่างไม่ได้) — ระบบใช้ตรวจว่าเป็นบัญชีของคุณจริง
+                  </div>
+                ) : (
+                  <div className="bs-muted" style={{ fontSize: 11.5, marginTop: 5 }}>
+                    ใช้ตรวจว่าเป็นบัญชีของคุณจริง — กรอกผิด/ไม่กรอก ระบบจะกักออเดอร์ให้ร้านตรวจ
+                  </div>
+                )}
               </div>
             )}
 
