@@ -421,15 +421,15 @@ html,body{background:var(--bg)!important}
   padding:20px 14px 40px;font-family:"IBM Plex Sans Thai","Leelawadee UI",Tahoma,sans-serif}
 .bs-wrap{width:100%;max-width:440px}
 .bs-card{background:var(--card);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:22px 20px}
-.bs-head{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
-  @media (min-width:480px){.bs-head{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-    .bs-brandrow{flex:0 0 auto}
-    .bs-toolrow{flex:1 1 auto;justify-content:flex-end}}
+.bs-head{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:6px;margin-bottom:16px;flex-wrap:nowrap}
+  .bs-brandrow{flex:0 0 auto;min-width:0}
+  .bs-toolrow{flex:0 0 auto;justify-content:flex-end;flex-wrap:nowrap}
   .bs-brandrow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
   .bs-toolrow{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;row-gap:6px}
-.bs-logo{display:flex;align-items:center;gap:8px;font:800 17px/1 Prompt,sans-serif;letter-spacing:.2px;color:var(--ink);white-space:nowrap;flex:none}
+.bs-logo{display:flex;align-items:center;gap:6px;font:800 16px/1 Prompt,sans-serif;letter-spacing:.2px;color:var(--ink);white-space:nowrap;flex:none}
+  .bs-logo i{width:24px;height:24px;font-size:11.5px}
 .bs-logo i{width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-style:normal;font-size:12px}
-.bs-line{display:inline-flex;align-items:center;gap:2px;background:#06C755;color:#fff;border-radius:999px;padding:5px 9px 5px 7px;
+.bs-line{display:inline-flex;align-items:center;gap:2px;background:#06C755;color:#fff;border-radius:999px;padding:4px 8px 4px 6px;
   font:800 11.5px/1 Prompt,sans-serif;letter-spacing:.3px;text-decoration:none;white-space:nowrap;flex:none}
 .bs-line span{font-size:13px;line-height:1}
 .bs-line:hover{filter:brightness(1.07)}
@@ -444,7 +444,7 @@ html,body{background:var(--bg)!important}
     .bs-lang-label{display:none}
     .bs-moon{width:30px;height:30px}
   }
-  .bs-moon{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--ink);
+  .bs-moon{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--ink);
   display:grid;place-items:center;cursor:pointer;font-size:15px}
 .bs-moon:focus,.bs-btn:focus,.bs-opt:focus,.bs-chipbtn:focus,.bs-method:focus,.bs-link:focus,.bs-copy:focus{outline:none}
 .bs-moon:focus-visible,.bs-btn:focus-visible,.bs-opt:focus-visible,.bs-chipbtn:focus-visible,.bs-method:focus-visible,
