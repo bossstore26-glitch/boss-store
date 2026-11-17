@@ -140,7 +140,6 @@ export function LangSwitch() {
         }}
       >
         <span style={{ display: 'inline-flex', borderRadius: 2, overflow: 'hidden' }}>{FLAG[cur.code]}</span>
-        {cur.label}
         <span style={{ color: 'var(--muted)', fontSize: 9, marginTop: 1 }}>▼</span>
       </button>
       {open && (
