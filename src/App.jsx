@@ -1421,7 +1421,7 @@ export default function App() {
             {method !== 'truemoney' && (
               <div style={{ marginTop: 12 }}>
                 <label htmlFor="bankAcc" style={{ fontSize: 14, fontWeight: 800, display: 'block', marginBottom: 6, color: 'var(--ink)' }}>
-                  เลขบัญชีธนาคารหรือพร้อมเพย์ที่ใช้โอน <span style={{ color: 'var(--red)' }}>*</span>
+                  เลขบัญชีธนาคารหรือพร้อมเพย์ที่ใช้โอน <span style={{ color: 'var(--red)' }}>* (10 หลัก)</span>
                 </label>
                 <input
                   id="bankAcc"
