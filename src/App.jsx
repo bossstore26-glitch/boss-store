@@ -768,7 +768,7 @@ function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176'
             </div>
           </div>
 
-          <div className="relative min-h-[42px] rounded-lg border border-zinc-700 bg-[#12110f] px-2.5 py-2 text-xs leading-snug flex items-center">
+          <div className="relative h-[52px] rounded-lg border border-zinc-700 bg-[#12110f] px-2.5 py-1.5 text-xs leading-tight flex items-center overflow-hidden">
             {step === 0 && (
               <span className="text-zinc-500 flex items-center gap-1">
                 <span>แตะช่องนี้...</span>
@@ -781,7 +781,7 @@ function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176'
                 <span>กดปุ่ม "วาง" ด้านบน</span>
               </span>
             )}
-            {step === 2 && <span className="font-medium text-amber-300">{memoText}</span>}
+            {step === 2 && <span className="font-medium text-amber-300 text-[11px] leading-tight">{memoText}</span>}
           </div>
 
           <div className="mt-2 flex items-center justify-between">
