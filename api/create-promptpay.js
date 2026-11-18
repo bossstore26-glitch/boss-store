@@ -57,6 +57,8 @@ export default async function handler(req, res) {
   const amount = Number(req.body?.amount);
   const game = String(req.body?.game ?? 'royal');
   const bank = String(req.body?.bank ?? '').replace(/\D/g, '');
+  // 18 พ.ย.: รหัสธนาคารที่ลูกค้าเลือก (3 หลักแบบ Slip2Go) · ว่าง = "อื่นๆ"/หน้าเก่าที่ยังไม่รีเฟรช
+  const bankCode = /^\d{3}$/.test(String(req.body?.bankCode ?? '')) ? String(req.body.bankCode) : '';
 
   if (!GAMES[game]) {
     return res.status(400).json({ error: 'ไม่รู้จักเกมนี้' });
@@ -85,7 +87,7 @@ export default async function handler(req, res) {
     const r = await fetch(`${String(bot || '').replace(/\/$/, '')}/shop/pp/new`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
-      body: JSON.stringify({ code, game, gameId, amount, bank }),
+      body: JSON.stringify({ code, game, gameId, amount, bank, bankCode }),
       signal: AbortSignal.timeout(8000),
     });
     const d = await r.json();
