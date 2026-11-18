@@ -729,8 +729,8 @@ function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176'
   const memoText = `เติม ${selectedGame === 'siam' ? 'Siam' : 'Royal'} ไอดี ${playerId || '4873176'} เพจ BOSS STORE`;
 
   return (
-    <div className="my-3 flex flex-col items-center select-none">
-      <div className="relative w-[285px] shrink-0 rounded-[36px] border-[4px] border-zinc-600 bg-[#181715] p-2.5 shadow-2xl">
+    <div className="my-2 flex flex-col items-start select-none">
+      <div className="relative w-full max-w-[285px] shrink-0 rounded-[36px] border-[4px] border-zinc-600 bg-[#181715] p-2.5 shadow-2xl">
         <div className="relative overflow-hidden rounded-[26px] bg-[#161513] px-3 pt-2 pb-3 border border-zinc-800">
           <div className="mx-auto mb-2 h-4 w-24 rounded-full bg-black" />
 
