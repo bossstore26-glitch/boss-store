@@ -721,91 +721,108 @@ function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176'
   const memoText = `เติม ${selectedGame === 'siam' ? 'Siam' : 'Royal'} ไอดี ${playerId || '4873176'} เพจ BOSS STORE`;
 
   return (
-    <div className="my-3 flex flex-col items-center">
-      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-amber-300">
-        <span className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-        <span>ตัวอย่างวิธีวางข้อความในแอปธนาคาร (ทำตาม 3 วิ)</span>
-      </div>
+    <div className="my-3 flex flex-col items-center select-none">
+      <div className="relative w-[285px] shrink-0 rounded-[36px] border-[4px] border-zinc-600 bg-[#181715] p-2.5 shadow-2xl">
+        <div className="relative overflow-hidden rounded-[26px] bg-[#161513] px-3 pt-2 pb-3 border border-zinc-800">
+          <div className="mx-auto mb-2 h-4 w-24 rounded-full bg-black" />
 
-      <div className="relative w-full max-w-[275px] rounded-[28px] border-[3px] border-zinc-700 bg-[#141311] p-3 shadow-2xl select-none">
-        <div className="mx-auto mb-2.5 h-3.5 w-20 rounded-full bg-black" />
+          <div className="mb-2.5 flex items-center justify-between border-b border-zinc-800/80 pb-2">
+            <span className="text-sm font-medium text-zinc-400">‹</span>
+            <span className="text-xs font-bold text-white">ยืนยันการโอนเงิน</span>
+            <span className="w-3" />
+          </div>
 
-        <div className="mb-2 flex items-center justify-between border-b border-zinc-800 pb-1.5 px-1">
-          <span className="text-xs text-zinc-400">‹</span>
-          <span className="text-xs font-semibold text-white">ยืนยันการโอนเงิน</span>
-          <span className="w-3" />
-        </div>
+          <div className="mb-2.5 space-y-2 rounded-xl bg-[#1e1c19] p-2.5 text-[11px]">
+            <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
+              <div className="h-5 w-5 rounded-full bg-purple-700/70 blur-[1px]" />
+              <div className="h-2.5 w-24 rounded bg-zinc-600/60 blur-[1.5px]" />
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400">ยอดเงิน</span>
+              <span className="font-bold text-white">{Number(amount || 20).toFixed(2)} บาท</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400">ค่าธรรมเนียม</span>
+              <span className="text-zinc-400">0.00 บาท</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400">บัญชีผู้รับ</span>
+              <span className="font-semibold text-zinc-200">BOSS STORE</span>
+            </div>
+            <div className="flex justify-end">
+              <div className="h-2 w-28 rounded bg-zinc-600/50 blur-[1.5px]" />
+            </div>
+          </div>
 
-        <div className="mb-2.5 flex justify-between rounded-xl bg-[#1b1916] px-3 py-2 text-[11px] opacity-60">
-          <span className="text-zinc-400">ยอดโอน</span>
-          <span className="font-semibold text-white">{Number(amount || 20).toFixed(2)} บาท</span>
-        </div>
+          <div className="relative my-2">
+            <div
+              className={`rounded-xl border-2 p-2.5 transition-all duration-300 ${
+                step === 2
+                  ? 'border-emerald-400 bg-[#17221b] shadow-[0_0_16px_rgba(52,211,153,0.25)]'
+                  : 'border-amber-400 bg-[#221d15] shadow-[0_0_16px_rgba(251,191,36,0.25)]'
+              }`}
+            >
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-zinc-200">บันทึกช่วยจำ (Memo)</span>
+                {step === 2 && (
+                  <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">
+                    ✓ วางแล้ว
+                  </span>
+                )}
+              </div>
 
-        <div
-          className={`relative rounded-xl border-2 p-2.5 transition-all duration-300 ${
-            step === 2
-              ? 'border-emerald-400 bg-emerald-950/20 shadow-[0_0_15px_rgba(52,211,153,0.2)]'
-              : 'border-amber-400 bg-[#1e1b15] shadow-[0_0_15px_rgba(251,191,36,0.2)]'
-          }`}
-        >
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-zinc-200">บันทึกช่วยจำ (Memo)</span>
-            {step === 2 && (
-              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
-                ✓ เรียบร้อย
-              </span>
-            )}
+              <div
+                className={`absolute top-5 left-1/2 -translate-x-1/2 z-20 transition-all duration-200 ${
+                  step === 1 ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'
+                }`}
+              >
+                <div className="relative rounded-md bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-zinc-900 shadow-lg">
+                  วาง (Paste)
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 bg-white" />
+                </div>
+              </div>
+
+              <div className="relative h-[48px] shrink-0 rounded-lg border border-zinc-700 bg-[#12110f] px-2.5 py-1.5 text-xs leading-tight flex items-center overflow-hidden">
+                {step === 0 && (
+                  <span className="text-zinc-500 flex items-center gap-1 text-[11px]">
+                    <span>แตะช่องนี้...</span>
+                    <span className="inline-block animate-bounce text-sm">👆</span>
+                  </span>
+                )}
+                {step === 1 && (
+                  <span className="text-amber-300/80 flex items-center gap-1 text-[11px]">
+                    <span className="inline-block h-3.5 w-0.5 bg-amber-400 animate-pulse" />
+                    <span>กดปุ่ม "วาง"</span>
+                  </span>
+                )}
+                {step === 2 && (
+                  <span className="font-medium text-[11px] leading-tight text-white">{memoText}</span>
+                )}
+              </div>
+            </div>
+
+            <div
+              className={`absolute -right-2 -bottom-3 z-20 flex items-center transition-transform duration-300 ${
+                step === 2 ? 'scale-95' : 'scale-100 animate-pulse'
+              }`}
+            >
+              <div className="h-0 w-0 border-y-[12px] border-y-transparent border-r-[14px] border-r-yellow-400 drop-shadow" />
+              <div className="rounded-lg bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-600 px-2.5 py-1 text-[11px] font-extrabold leading-tight text-zinc-950 shadow-lg border border-yellow-300/60">
+                {step === 2 ? 'เรียบร้อย!' : (<>วางข้อความ<br />ตรงนี้!</>)}
+              </div>
+            </div>
           </div>
 
           <div
-            className={`absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 transition-all duration-200 ${
-              step === 1 ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'
+            className={`mt-4 rounded-lg py-2 text-center text-xs font-bold transition-colors duration-300 ${
+              step === 2 ? 'bg-emerald-600 text-white shadow-md' : 'bg-zinc-700/80 text-zinc-400'
             }`}
           >
-            <div className="relative rounded-lg bg-zinc-100 px-3 py-1 text-[11px] font-extrabold text-zinc-900 shadow-lg">
-              วาง (Paste)
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 bg-zinc-100" />
-            </div>
+            ยืนยัน
           </div>
 
-          <div className="relative h-[52px] rounded-lg border border-zinc-700 bg-[#12110f] px-2.5 py-1.5 text-xs leading-tight flex items-center overflow-hidden">
-            {step === 0 && (
-              <span className="text-zinc-500 flex items-center gap-1">
-                <span>แตะช่องนี้...</span>
-                <span className="inline-block animate-bounce text-sm">👆</span>
-              </span>
-            )}
-            {step === 1 && (
-              <span className="text-amber-300/80 flex items-center gap-1">
-                <span className="inline-block h-3.5 w-0.5 bg-amber-400 animate-pulse" />
-                <span>กดปุ่ม "วาง" ด้านบน</span>
-              </span>
-            )}
-            {step === 2 && <span className="font-medium text-amber-300 text-[11px] leading-tight">{memoText}</span>}
-          </div>
-
-          <div className="mt-2 flex items-center justify-between">
-            <div className="flex gap-1">
-              {[0, 1, 2].map((dot) => (
-                <span key={dot}
-                  className={`h-1.5 rounded-full transition-all ${step === dot ? 'w-4 bg-amber-400' : 'w-1.5 bg-zinc-700'}`} />
-              ))}
-            </div>
-            <span className="rounded-md bg-gradient-to-r from-yellow-400 to-orange-500 px-2 py-0.5 text-[11px] font-extrabold text-zinc-950">
-              {step === 2 ? 'กดโอนได้เลย!' : '⬅ วางข้อความตรงนี้!'}
-            </span>
-          </div>
+          <div className="mx-auto mt-2.5 h-1 w-24 rounded-full bg-zinc-600" />
         </div>
-
-        <div
-          className={`mt-2.5 rounded-lg py-1.5 text-center text-xs font-semibold transition-colors duration-300 ${
-            step === 2 ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-500'
-          }`}
-        >
-          ยืนยัน
-        </div>
-
-        <div className="mx-auto mt-2 h-1 w-24 rounded-full bg-zinc-700" />
       </div>
     </div>
   );
