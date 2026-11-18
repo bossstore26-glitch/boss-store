@@ -37,6 +37,19 @@ async function copyToClipboard(text) {
   }
 }
 
+// ธนาคารให้ลูกค้าเลือก (รหัสเดียวกับที่ Slip2Go ส่งมาในสลิป · len = จำนวนหลักเลขบัญชี · อื่นๆ = 10–15)
+const BANKS = [
+  { code: '004', name: 'กสิกร', len: 10 },
+  { code: '014', name: 'ไทยพาณิชย์', len: 10 },
+  { code: '006', name: 'กรุงไทย', len: 10 },
+  { code: '002', name: 'กรุงเทพ', len: 10 },
+  { code: '025', name: 'กรุงศรี', len: 10 },
+  { code: '011', name: 'ttb', len: 10 },
+  { code: '030', name: 'ออมสิน', len: 12 },
+  { code: '034', name: 'ธ.ก.ส.', len: 12 },
+  { code: 'other', name: 'อื่นๆ', len: 0 },
+];
+
 const MEMO_STEP = (<>ก่อนกดโอนเงิน จะมีช่อง <b>"บันทึก/บันทึกช่วยจำ"</b><br />ให้คัดลอกข้อความข้อ 1 วางก่อนโอนเงิน</>);
 
 function SlipNote({ game, gameId, text, onCopied }) {
@@ -182,7 +195,7 @@ function QrPreview({ src, onClose }) {
 // รายการเก่าแบบ Stripe (pi_...) ไม่มีรหัสนี้ → ไม่แสดง
 // ร้านขอ 9 พ.ย.: ให้เห็นรหัสหลังจ่าย/อัปสลิปแล้วเท่านั้น (ทักเพจมาพร้อมรหัส = จ่ายแล้ว)
 // fallbackAt = เวลา(ms)ที่จะโผล่ปุ่ม "โอนแล้วแต่ยังไม่ขึ้น?" กันกรณีระบบแจ้งเงินเข้าช้า/หลุด
-function OrderCode({ id, visible, fallbackAt = 0, gameName = '', gameId = '' }) {
+function OrderCode({ id, visible, fallbackAt = 0, gameName = '', gameId = '', review = false }) {
   const [revealed, setRevealed] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [copied, setCopied] = useState(false);
@@ -201,7 +214,10 @@ function OrderCode({ id, visible, fallbackAt = 0, gameName = '', gameId = '' }) 
     );
   }
   // ข้อความที่คัดลอก = บรรทัดบน ("เติม ... ให้ไอดี ...") + รหัสออเดอร์
-  const copyText = `เติม ${gameName} ให้ไอดี ${gameId} #${id}`;
+  // ร้านสั่ง 18 พ.ย.: ตอนรอตรวจ (เติมครั้งแรก) คัดลอกเป็นประโยคพร้อมส่งในแชท LINE/Messenger
+  const copyText = review
+    ? `ยืนยันตัวตนเติมครั้งแรก ออเดอร์ #${id} ไอดี ${gameId}`
+    : `เติม ${gameName} ให้ไอดี ${gameId} #${id}`;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(copyText);
@@ -230,12 +246,12 @@ function OrderCode({ id, visible, fallbackAt = 0, gameName = '', gameId = '' }) 
 // กล่องบนสุดของหน้าจ่าย (ร้านขอ 12 พ.ย. ให้คงแบบเดิม): "เติม <เกม> ให้ไอดี <ไอดี>" + รหัสออเดอร์ + ปุ่มคัดลอก
 // ร้านสั่ง 12 พ.ย. (รอบ 2): ซ่อนรหัสออเดอร์จนกว่าลูกค้าจะโอน/อัปสลิป (ยังไม่จ่ายไม่ต้องเห็นรหัส)
 // ถ้าเลย fallbackAt แล้วยังไม่ขึ้น มีลิงก์ "โอนแล้วแต่ยังไม่ขึ้น? ดูรหัสรายการ" ให้กดเปิดเอง
-function OrderBox({ pending, visible = true, fallbackAt = 0 }) {
+function OrderBox({ pending, visible = true, fallbackAt = 0, review = false }) {
   return (
     <div className="bs-orderbox">
       <p className="t">เติม <b>{gameOf(pending.game).name}</b> ให้ไอดี <b className="id">{pending.gameId}</b></p>
       <OrderCode id={pending.id} gameName={gameOf(pending.game).name} gameId={pending.gameId}
-        visible={visible} fallbackAt={fallbackAt} />
+        visible={visible} fallbackAt={fallbackAt} review={review} />
     </div>
   );
 }
@@ -546,8 +562,13 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-qrbox .big{font:800 42px/1 Prompt,sans-serif;color:var(--ink)}
 .bs-qrbox .big small{font:600 15px/1 Prompt,sans-serif;color:var(--muted);margin-left:6px}
 .bs-qr{background:#fff;border-radius:16px;padding:8px;margin:14px auto 0;width:fit-content;overflow:hidden}
-.bs-qr-reveal{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:14px 20px;border:0;border-radius:14px;
-  background:#fff;color:#1c1915;font:700 16px/1.4 Prompt,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:default;white-space:nowrap;
+.bs-banks{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.bs-bank{border:1.5px solid var(--line);background:var(--card2);color:var(--ink);border-radius:12px;padding:9px 4px;
+  font:700 13px/1.2 Prompt,sans-serif;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bs-bank.on{border-color:var(--ink);background:var(--ink);color:var(--card)}
+.bs-qr-reveal{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:12px 12px;border:0;border-radius:14px;
+  background:#fff;color:#1c1915;font:700 15px/1.45 Prompt,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:default;
+  width:86%;box-sizing:border-box;
   border:2px solid #1c1915;pointer-events:none;user-select:none;text-align:center}
 .bs-timer{text-align:center;font-size:13px;color:var(--muted);margin-top:8px}
 .bs-timer b{font:800 16px/1 Prompt,sans-serif;color:var(--ink);margin:0 4px}
@@ -867,7 +888,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           {paid ? 'กำลังส่งเหรียญ' : review ? 'รอตรวจสอบ' : 'สแกนจ่าย'}
         </h1>
       </div>
-      <OrderBox pending={pending} visible={status !== 'idle' || !!msg}
+      <OrderBox pending={pending} visible={status !== 'idle' || !!msg} review={review && !bankwait}
         fallbackAt={pending.qrExpiresAt ? (pending.qrExpiresAt - 10 * 60 + 3 * 60) * 1000 : 0} />
 
       <div className="bs-qrbox">
@@ -883,7 +904,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               {!noteCopied && (
                 // ร้านสั่ง 18 พ.ย.: เป็นแค่ป้าย กดไม่ได้ (ลูกค้าต้องกดคัดลอกที่ข้อ 1 เอง)
                 <div className="bs-qr-reveal" aria-hidden="true">
-                  📋 คัดลอกข้อความด้านล่าง<br />เพื่อแสดง QR code
+                  กดปุ่ม 'คัดลอก'<br />สีเหลืองด้านล่าง<br />เพื่อปลดล็อก QR
                 </div>
               )}
             </div>
@@ -1184,23 +1205,33 @@ export default function App() {
   };
   const [method, setMethod] = useState('promptpay');
   const [customAmount, setCustomAmount] = useState('');
-  const [bankAcc, setBankAcc] = useState('');  // เลขบัญชี/พร้อมเพย์ 10 หลักของลูกค้า (บังคับกรอก)
+  const [bankAcc, setBankAcc] = useState('');  // เลขบัญชี 10/12 หลักของลูกค้า (บังคับกรอก)
+  const [bankCode, setBankCode] = useState('');  // 18 พ.ย. ร้านสั่ง: บังคับเลือกธนาคาร (รหัส 3 หลักแบบ Slip2Go หรือ 'other')
   const [bankTouched, setBankTouched] = useState(false);  // ลูกค้าลืมกรอก → ขอบแดงเตือน
-  const [bankHistory, setBankHistory] = useState([]);  // 17 พ.ย. ร้านสั่ง: จำเลขบัญชีที่เคยกรอก มากสุด 3 รายการ
+  const [bankHistory, setBankHistory] = useState([]);  // 17 พ.ย. ร้านสั่ง: จำบัญชีที่เคยกรอก มากสุด 3 รายการ [{code, acc}]
+  const bankInfo = BANKS.find((b) => b.code === bankCode);
+  const bankLen = bankInfo ? bankInfo.len : 10;  // 'อื่นๆ' = 10–15
+  const bankAccOk = bankInfo && (bankInfo.len ? bankAcc.length === bankInfo.len : bankAcc.length >= 10 && bankAcc.length <= 15);
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('bossstore_banks') || '[]');
-      if (Array.isArray(saved)) setBankHistory(saved.filter((x) => /^\d{10}$/.test(x)).slice(0, 3));
+      if (Array.isArray(saved)) {
+        // รูปแบบใหม่ "รหัส|เลข" · รูปแบบเก่า (เลขอย่างเดียว) = ยังไม่รู้ธนาคาร ให้ลูกค้าเลือกเอง
+        setBankHistory(saved.map((x) => {
+          const [c, a] = String(x).includes('|') ? String(x).split('|') : ['', String(x)];
+          return { code: BANKS.some((b) => b.code === c) ? c : '', acc: a };
+        }).filter((x) => /^\d{10,15}$/.test(x.acc)).slice(0, 3));
+      }
     } catch { /* เพิกเฉย */ }
   }, []);
 
-  const rememberBank = (value) => {
+  const rememberBank = (code, value) => {
     const v = String(value || '').replace(/\D/g, '');
-    if (!/^\d{10}$/.test(v)) return;
-    const next = [v, ...bankHistory.filter((x) => x !== v)].slice(0, 3);
+    if (!/^\d{10,15}$/.test(v)) return;
+    const next = [{ code, acc: v }, ...bankHistory.filter((x) => x.acc !== v)].slice(0, 3);
     setBankHistory(next);
-    try { localStorage.setItem('bossstore_banks', JSON.stringify(next)); } catch { /* เพิกเฉย */ }
+    try { localStorage.setItem('bossstore_banks', JSON.stringify(next.map((x) => `${x.code}|${x.acc}`))); } catch { /* เพิกเฉย */ }
   };
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(loadPending);
@@ -1351,11 +1382,11 @@ export default function App() {
 
   // ยืนยันไอดีแล้ว → สร้าง QR PromptPay / ลิงก์ TrueMoney แล้วแสดงบนหน้านี้เลย
   const createPayment = async () => {
-    if (method !== 'truemoney' && !/^\d{10,15}$/.test(bankAcc)) {
+    if (method !== 'truemoney' && !bankAccOk) {
       setBankTouched(true);  // ขอบแดง + ข้อความเตือนใต้ช่อง
       return;
     }
-    if (method !== 'truemoney') rememberBank(bankAcc);  // เก็บประวัติไว้เลือกครั้งหน้า
+    if (method !== 'truemoney') rememberBank(bankCode, bankAcc);  // เก็บประวัติไว้เลือกครั้งหน้า
     setConfirming(false);
     setLoading(true);
 
@@ -1363,7 +1394,8 @@ export default function App() {
       const response = await fetch(method === 'truemoney' ? '/api/create-truemoney' : '/api/create-promptpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId, amount: baht, game, bank: method === 'truemoney' ? '' : bankAcc, lang: currentLang() })
+        body: JSON.stringify({ gameId, amount: baht, game, bank: method === 'truemoney' ? '' : bankAcc,
+          bankCode: method === 'truemoney' || bankCode === 'other' ? '' : bankCode, lang: currentLang() })
       });
 
       const data = await response.json();
@@ -1465,51 +1497,105 @@ export default function App() {
 
             {method !== 'truemoney' && (
               <div style={{ marginTop: 12 }}>
-                <label htmlFor="bankAcc" style={{ fontSize: 14, fontWeight: 800, display: 'block', marginBottom: 6, color: 'var(--ink)' }}>
-                  {t('bankLabel')} <span style={{ color: 'var(--red)' }}>* {t('digit10')}</span>
+                {/* ร้านสั่ง 18 พ.ย.: เตือนตั้งแต่ก่อนสร้าง QR ว่าต้องเป็นบัญชีตัวเอง (กันโกงสามเส้า) */}
+                <div className="bs-alert warn" style={{ fontSize: 13, fontWeight: 700, padding: '8px 12px', marginBottom: 10 }}>
+                  {t('bankOwn')}
+                </div>
+                {bankHistory.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {bankHistory.map((v) => {
+                      const on = bankAcc === v.acc && bankCode === v.code;
+                      const b = BANKS.find((x) => x.code === v.code);
+                      return (
+                        <button
+                          key={v.acc}
+                          type="button"
+                          onClick={() => { setBankAcc(v.acc); if (v.code) setBankCode(v.code); setBankTouched(true); }}
+                          style={{
+                            border: `1.5px solid ${on ? 'var(--ink)' : 'var(--line)'}`,
+                            background: on ? 'var(--card)' : 'var(--card2)',
+                            color: 'var(--ink)', borderRadius: 999, padding: '7px 12px',
+                            fontSize: 12.5, fontWeight: 700, letterSpacing: .4, cursor: 'pointer',
+                          }}
+                        >
+                          🏦 {b && b.code !== 'other' ? `${b.name} ` : ''}{v.acc.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1-$2-$3')}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* 19 พ.ย. ร้านสั่ง: เปลี่ยนปุ่มธนาคาร 9 ปุ่ม → dropdown ช่องเดียว ประหยัดพื้นที่ */}
+  <div style={{ marginTop: 12 }}>
+    <label htmlFor="bankCode" style={{ fontSize: 14, fontWeight: 800, display: 'block', marginBottom: 6, color: 'var(--ink)' }}>
+      {t('bankPick')} <span style={{ color: 'var(--red)' }}>*</span>
+    </label>
+    <select
+      id="bankCode"
+      value={bankCode}
+      onChange={(e) => {
+        const c = e.target.value;
+        setBankCode(c);
+        const b = BANKS.find((x) => x.code === c);
+        if (b && b.len) setBankAcc((a) => a.slice(0, b.len));
+        setBankTouched(true);
+      }}
+      onBlur={() => setBankTouched(true)}
+      aria-invalid={bankTouched && !bankCode}
+      style={{
+        width: '100%', padding: '13px 38px 13px 14px', borderRadius: 14, appearance: 'none', WebkitAppearance: 'none',
+        border: `2px solid ${bankTouched && !bankCode ? 'var(--red)' : 'var(--line)'}`,
+        background: bankTouched && !bankCode ? 'var(--bad-bg)' : 'var(--card2)',
+        color: bankCode ? 'var(--ink)' : 'var(--muted)', fontSize: 15, fontWeight: 700, outline: 'none',
+        backgroundImage: 'linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%)',
+        backgroundPosition: 'calc(100% - 19px) calc(50% + 1px), calc(100% - 13px) calc(50% + 1px)',
+        backgroundSize: '6px 6px, 6px 6px', backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <option value="">{t('bankPickPlaceholder')}</option>
+      {BANKS.map((b) => (
+        <option key={b.code} value={b.code}>
+          {b.code === 'other' ? t('bankOther') : b.name}{b.len ? ` (${b.len} หลัก)` : ''}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <label htmlFor="bankAcc" style={{ fontSize: 14, fontWeight: 800, display: 'block', margin: '12px 0 6px', color: 'var(--ink)' }}>
+                  {t('bankLabel')} <span style={{ color: 'var(--red)' }}>* {bankInfo && !bankInfo.len ? t('digitAny') : t(bankLen === 12 ? 'digit12' : 'digit10')}</span>
                 </label>
                 <input
                   id="bankAcc"
                   type="tel"
                   inputMode="numeric"
-                  maxLength={15}
+                  maxLength={bankInfo && bankInfo.len ? bankInfo.len : 15}
                   value={bankAcc}
-                  onChange={(e) => { setBankAcc(e.target.value.replace(/\D/g, '').slice(0, 15)); setBankTouched(true); }}
+                  onChange={(e) => { setBankAcc(e.target.value.replace(/\D/g, '').slice(0, bankInfo && bankInfo.len ? bankInfo.len : 15)); setBankTouched(true); }}
                   onBlur={() => setBankTouched(true)}
-                  placeholder="กรอก 10 หลัก เช่น 1234567890"
-                  aria-invalid={bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15)}
+                  placeholder={bankLen === 12 ? 'กรอก 12 หลัก เช่น 020012345678' : 'กรอก 10 หลัก เช่น 1234567890'}
+                  aria-invalid={bankTouched && !bankAccOk}
                   style={{
                     width: '100%', padding: '13px 14px', borderRadius: 14,
-                    border: `2px solid ${bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15) ? 'var(--red)' : 'var(--line)'}`,
-                    background: bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15) ? 'var(--bad-bg)' : 'var(--card2)',
+                    border: `2px solid ${bankTouched && !bankAccOk ? 'var(--red)' : 'var(--line)'}`,
+                    background: bankTouched && !bankAccOk ? 'var(--bad-bg)' : 'var(--card2)',
                     color: 'var(--ink)', fontSize: 17, letterSpacing: 1.2, fontWeight: 700,
-                    boxShadow: bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15) ? '0 0 0 3px rgba(220,38,38,.15)' : 'none',
+                    boxShadow: bankTouched && !bankAccOk ? '0 0 0 3px rgba(220,38,38,.15)' : 'none',
                     outline: 'none',
                   }}
                 />
-                {bankHistory.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                    {bankHistory.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => { setBankAcc(v); setBankTouched(true); }}
-                        style={{
-                          border: `1.5px solid ${bankAcc === v ? 'var(--ink)' : 'var(--line)'}`,
-                          background: bankAcc === v ? 'var(--card)' : 'var(--card2)',
-                          color: 'var(--ink)', borderRadius: 999, padding: '7px 12px',
-                          fontSize: 12.5, fontWeight: 700, letterSpacing: .6, cursor: 'pointer',
-                        }}
-                      >
-                        🏦 {v.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
-                      </button>
-                    ))}
-                  </div>
-                )}
 
-                {bankTouched && !(bankAcc.length >= 10 && bankAcc.length <= 15) ? (
+                {bankTouched && !bankCode ? (
                   <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--red)', fontWeight: 700 }}>
-                    ⚠️ {t('bankErr')}
+                    ⚠️ {t('bankPickErr')}
+                  </div>
+                ) : bankTouched && !bankAccOk ? (
+                  <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--red)', fontWeight: 700 }}>
+                    ⚠️ {bankInfo && !bankInfo.len ? t('bankErrAny') : t(bankLen === 12 ? 'bankErr12' : 'bankErr')}
+                  </div>
+                ) : /^0[689]\d{8}$/.test(bankAcc) ? (
+                  // ลูกค้ามักใส่เบอร์พร้อมเพย์ → เลขท้ายไม่ตรงสลิป โดนกัก · เตือนแต่ไม่บล็อก (บางบัญชีขึ้นต้นแบบนี้ได้)
+                  <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--warn, #d97706)', fontWeight: 700 }}>
+                    ⚠️ {t('bankPhone')}
                   </div>
                 ) : (
                   <div className="bs-muted" style={{ fontSize: 11.5, marginTop: 5 }}>
