@@ -965,7 +965,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               {!qrExpired && (
                 <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>{t('step1a')}
                   <br /><b style={{ color: 'var(--red, #dc2626)' }}>{t('step1b')}</b>
-                  <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => setNoteCopied(true)} /></span></li>
+                  <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => { setNoteCopied(true); try { saveQr(); } catch { /* เพิกเฉย */ } }} /></span></li>
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>{t('step2')} (<b>{money} บาท</b>)<br />
                 <span className="bs-memo-hint">{t('memoHint')} <b>"บันทึกช่วยจำ"</b></span></span></li>
@@ -1202,9 +1202,14 @@ export default function App() {
     setGameId((cur) => (!cur || (recentIds[from] || []).includes(cur) ? (recentIds[to] || [])[0] || '' : cur));
   };
   const [method, setMethod] = useState('promptpay');
-  const [customAmount, setCustomAmount] = useState('');
-  const [bankAcc, setBankAcc] = useState('');  // เลขบัญชี 10/12 หลักของลูกค้า (บังคับกรอก)
-  const [bankCode, setBankCode] = useState('');  // 18 พ.ย. ร้านสั่ง: บังคับเลือกธนาคาร (รหัส 3 หลักแบบ Slip2Go หรือ 'other')
+  const [customAmount, setCustomAmount] = useState(String(MIN_BAHT));  // 18 พ.ย.: เตรียมยอดขั้นต่ำไว้ให้ กดต่อได้เลย
+  const [bankAcc, setBankAcc] = useState(() => {
+    // 18 พ.ย.: จำบัญชี/ธนาคารที่ใช้ล่าสุด → ลูกค้าประจำไม่ต้องกรอกซ้ำ
+    try { return JSON.parse(localStorage.getItem('bossstore_last_customer') || '{}').bankAcc || ''; } catch { return ''; }
+  });
+  const [bankCode, setBankCode] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('bossstore_last_customer') || '{}').bankCode || ''; } catch { return ''; }
+  });
   const [bankTouched, setBankTouched] = useState(false);  // ลูกค้าลืมกรอก → ขอบแดงเตือน
   const [bankHistory, setBankHistory] = useState([]);  // 17 พ.ย. ร้านสั่ง: จำบัญชีที่เคยกรอก มากสุด 3 รายการ [{code, acc}]
   const bankInfo = BANKS.find((b) => b.code === bankCode);
@@ -1400,6 +1405,7 @@ export default function App() {
 
       if (data.id && (data.qrData || data.url)) {
         rememberId(game, gameId);
+        try { localStorage.setItem('bossstore_last_customer', JSON.stringify({ game, gameId, bankCode, bankAcc })); } catch { /* เพิกเฉย */ }
         savePending(data);
         setPending(data);
       } else {
