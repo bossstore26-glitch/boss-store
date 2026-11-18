@@ -14,6 +14,13 @@ const STORAGE_KEY = 'bossstore_pending_qr';
 // เกมที่บอทค้นตัวละครให้ดูก่อนจ่ายได้ (12 พ.ย. เพิ่ม Siam หลังร้านล็อกอินบัญชี VIP ในจอรับเหรียญ)
 const CHECK_ID_GAMES = ['royal', 'siam'];
 
+// 18 พ.ย. ร้านสั่ง: กด "คัดลอก" แล้วเลื่อนลงไปข้อ 2 ให้เอง
+function scrollStep(ref) {
+  try {
+    setTimeout(() => ref && ref.current && ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' }), 180);
+  } catch { /* เพิกเฉย */ }
+}
+
 function qrLabel(game, gameId) {
   return [`เติม ${gameOf(game).name}`, `ID ${gameId}`, 'ร้าน BOSS STORE'];
 }
@@ -646,6 +653,7 @@ function Header({ theme, onToggle, right }) {
 // บอทตรวจ: สลิปต้นฉบับ (Slip2Go) + คนโอนคนเดียวกับสลิปแรก แล้วแจ้งร้าน ร้านดูบันทึกช่วยจำแล้วกดส่งเอง
 function VerifyBox({ pending, verify, onState }) {
   const canvasRef = useRef(null);
+  const verifyStep2Ref = useRef(null);
   const fileRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const canUpload = !busy && (verify.state === 'open' || verify.state === 'bad') && verify.triesLeft > 0;
@@ -684,8 +692,8 @@ function VerifyBox({ pending, verify, onState }) {
       <b>ร้านขอสลิปยืนยันตัวตนเพิ่ม</b>
       <ol className="bs-steps" style={{ marginTop: 8 }}>
         <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกข้อความนี้
-          <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
-        <li><i>2</i><span>สแกน QR โอน <b>{Number(verify.amount).toFixed(2)} บาท</b><br />จาก<b>บัญชีเดียวกับที่จ่ายครั้งแรก</b></span></li>
+          <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => scrollStep(verifyStep2Ref)} /></span></li>
+        <li ref={verifyStep2Ref}><i>2</i><span>สแกน QR โอน <b>{Number(verify.amount).toFixed(2)} บาท</b><br />จาก<b>บัญชีเดียวกับที่จ่ายครั้งแรก</b></span></li>
         <li><i>3</i><span>{MEMO_STEP}<MemoExample amount={pending.amount} selectedGame={pending.game} playerId={pending.gameId} /></span></li>
         <li><i>4</i><span>อัปรูปสลิปจากแอปธนาคาร (ห้ามถ่ายจากจอ)</span></li>
       </ol>
@@ -954,6 +962,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   };
 
   const [preview, setPreview] = useState(null);
+  const step2Ref = useRef(null);
   const saveQr = () =>
     saveQrImage(canvasRef.current, `BOSS-STORE-QR-${pending.amount}baht.png`, setPreview).catch(() =>
       setPreview(canvasRef.current.toDataURL('image/png')),
@@ -1084,9 +1093,9 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               {!qrExpired && (
                 <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>{t('step1a')}
                   <br /><b style={{ color: 'var(--red, #dc2626)' }}>{t('step1b')}</b>
-                  <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => setNoteCopied(true)} /></span></li>
+                  <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => { setNoteCopied(true); scrollStep(step2Ref); }} /></span></li>
               )}
-              <li><i>{qrExpired ? 1 : 2}</i><span>{t('step2')} (<b>{money} บาท</b>)<br />
+              <li ref={step2Ref}><i>{qrExpired ? 1 : 2}</i><span>{t('step2')} (<b>{money} บาท</b>)<br />
                 <span className="bs-memo-hint">{t('memoHint')} <b>"บันทึกช่วยจำ"</b></span>
             <MemoExample amount={pending.amount} selectedGame={pending.game} playerId={pending.gameId} /></span></li>
               <li><i>{qrExpired ? 2 : 3}</i><span>{t('step3')}<br />เพื่อ<b style={{ color: 'var(--good, #22c55e)' }}>{t('step3b')}</b></span></li>
