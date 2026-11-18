@@ -372,7 +372,7 @@ function PaymentCard({ pending, onDone, onCancel }) {
       </div>
       <div className="bs-row" style={{ marginTop: 14, justifyContent: 'center', gap: 20 }}>
         {paid || dead ? (
-          <button onClick={onDone} className="bs-link">{paid ? t('addMore') : t('newQr')}</button>
+          <button onClick={onDone} className="bs-link">{!paid ? t('newQr') : null}</button>
         ) : (
           <>
             <button onClick={saveQr} className="bs-link">บันทึก QR</button>
@@ -1003,7 +1003,6 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         {paid ? (
           <>
             <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
-            <button onClick={onDone} className="bs-link">{t('addMore')}</button>
           </>
         ) : review ? (
           <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
@@ -1168,7 +1167,6 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
         {paid ? (
           <>
             <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
-            <button onClick={onDone} className="bs-link">เติมเพิ่ม</button>
           </>
         ) : (
           <>
@@ -1417,7 +1415,19 @@ export default function App() {
     setLoading(false);
   };
 
-  const done = () => { savePending(null); setPending(null); setCustomAmount(''); };
+  const done = () => {
+    // 18 พ.ย. ร้านสั่ง: กด "ตกลง" ในป๊อปอัปสำเร็จ → กลับหน้าแรกสุด (ล้างฟอร์ม/ไอดี/ธนาคาร)
+    savePending(null);
+    setPending(null);
+    setCustomAmount('');
+    setGameId('');
+    setPlayerCheck({ status: 'idle' });
+    setConfirming(false);
+    setBankAcc('');
+    setBankCode('');
+    setBankTouched(false);
+    try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch { /* เพิกเฉย */ }
+  };
   const shell = (children, caption) => (
     <div className="bs-page">
       <style>{STYLE_CSS}</style>
