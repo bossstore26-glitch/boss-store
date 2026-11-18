@@ -694,7 +694,7 @@ function VerifyBox({ pending, verify, onState }) {
         <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกข้อความนี้
           <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => scrollStep(verifyStep2Ref)} /></span></li>
         <li ref={verifyStep2Ref}><i>2</i><span>สแกน QR โอน <b>{Number(verify.amount).toFixed(2)} บาท</b><br />จาก<b>บัญชีเดียวกับที่จ่ายครั้งแรก</b></span></li>
-        <li><i>3</i><span>{MEMO_STEP}<MemoExample amount={pending.amount} selectedGame={pending.game} playerId={pending.gameId} /></span></li>
+        <li><i>3</i><span style={{ flex: 1, minWidth: 0 }}>{MEMO_STEP}<div style={{ width: '100%', marginTop: 6 }}><MemoExample fit amount={pending.amount} selectedGame={pending.game} playerId={pending.gameId} /></div></span></li>
         <li><i>4</i><span>อัปรูปสลิปจากแอปธนาคาร (ห้ามถ่ายจากจอ)</span></li>
       </ol>
       <div className="bs-qr" style={{ marginTop: 10 }}>
@@ -719,7 +719,7 @@ function VerifyBox({ pending, verify, onState }) {
 // พร้อมเพย์ธนาคารร้าน: สแกนจ่าย → อัปโหลดสลิป → บอทตรวจสลิปกับธนาคาร (Slip2Go) แล้วส่งเหรียญ
 
 // 18 พ.ย.: ตัวอย่างแอนิเมชันวิธีวางข้อความในช่อง "บันทึกช่วยจำ" ของแอปธนาคาร
-function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176' }) {
+function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176', fit = false }) {
   const [step, setStep] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => setStep((p) => (p + 1) % 3), 1500);
@@ -729,8 +729,8 @@ function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176'
   const memoText = `เติม ${selectedGame === 'siam' ? 'Siam' : 'Royal'} ไอดี ${playerId || '4873176'} เพจ BOSS STORE`;
 
   return (
-    <div className="my-2 flex flex-col items-start select-none">
-      <div className="relative w-full max-w-[285px] shrink-0 rounded-[36px] border-[4px] border-zinc-600 bg-[#181715] p-2.5 shadow-2xl">
+    <div className="my-2 flex w-full flex-col items-center select-none">
+      <div className={`relative ${fit ? 'w-full max-w-[285px]' : 'w-[285px]'} shrink-0 rounded-[36px] border-[4px] border-zinc-600 bg-[#181715] p-2.5 shadow-2xl`}>
         <div className="relative overflow-hidden rounded-[26px] bg-[#161513] px-3 pt-2 pb-3 border border-zinc-800">
           <div className="mx-auto mb-2 h-4 w-24 rounded-full bg-black" />
 
