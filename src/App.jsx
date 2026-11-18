@@ -1202,7 +1202,7 @@ export default function App() {
     setGameId((cur) => (!cur || (recentIds[from] || []).includes(cur) ? (recentIds[to] || [])[0] || '' : cur));
   };
   const [method, setMethod] = useState('promptpay');
-  const [customAmount, setCustomAmount] = useState(() => String(minBaht('royal')));  // 18 พ.ย.: เตรียมยอดขั้นต่ำไว้ให้  // 18 พ.ย.: เตรียมยอดขั้นต่ำไว้ให้ กดต่อได้เลย
+  const [customAmount, setCustomAmount] = useState('50');  // 18 พ.ย. ร้านสั่ง: เตรียมยอด 50 บาทไว้ให้  // 18 พ.ย.: เตรียมยอดขั้นต่ำไว้ให้ กดต่อได้เลย
   const [bankAcc, setBankAcc] = useState(() => {
     // 18 พ.ย.: จำบัญชี/ธนาคารที่ใช้ล่าสุด → ลูกค้าประจำไม่ต้องกรอกซ้ำ
     try { return JSON.parse(localStorage.getItem('bossstore_last_customer') || '{}').bankAcc || ''; } catch { return ''; }
