@@ -865,6 +865,19 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+  // ร้านสั่ง 18 พ.ย.: ธนาคารยังไม่พบรายการ/ระบบตรวจล่ม → พักปุ่มอัปสลิป 45 วิ (จำในเครื่อง รีเฟรชไม่รีเซ็ต)
+  const coolKey = `bossstore_cool_${pending.id}`;
+  const [coolUntil, setCoolUntilRaw] = useState(() => {
+    try { return Number(localStorage.getItem(coolKey)) || 0; } catch { return 0; }
+  });
+  const startCooldown = (sec) => {
+    const s = Number(sec) || 0;
+    if (s <= 0) return;
+    const until = Date.now() + s * 1000;
+    setCoolUntilRaw(until);
+    try { localStorage.setItem(coolKey, String(until)); } catch { /* ข้ามได้ */ }
+  };
+  const coolLeft = Math.max(0, Math.ceil((coolUntil - now) / 1000));
   const secondsLeft = Math.max(0, Math.ceil((qrDeadline - now) / 1000));
   const qrExpired = secondsLeft === 0;
   // เอฟเฟกต์ปุ่มอัปโหลดเด้ง/กะพริบตั้งแต่เปิดหน้านี้เลย (ลูกค้าบางคนโอนแล้วไม่รู้ว่าต้องอัปโหลดสลิป)
@@ -918,6 +931,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           setStatus((s) => (s === 'bankwait' || s === 'review' ? 'idle' : s));
           setMsg(d.message || 'ตรวจสลิปไม่ผ่าน กรุณาทักแชทเพจ BOSS STORE พร้อมสลิป');
           setMsgBad(true);
+          if (d.cooldown) startCooldown(d.cooldown);
         }
       } catch {}
       if (!stopped) timer = setTimeout(tick, 4000);
@@ -939,6 +953,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
       });
       const d = await r.json();
       setMsg(d.message || '');
+      if (d.cooldown) startCooldown(d.cooldown);
       if (d.status === 'paid') {
         setStatus('paid');
         setMsgBad(false);
@@ -1102,17 +1117,21 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
             {/* ร้านสั่ง 18 พ.ย.: ซ่อนปุ่มอัปสลิปจนกดคัดลอกข้อความ (QR หมดอายุ/เคยอัปแล้วมีข้อความผล = โชว์เสมอ เผื่อโอนไปแล้ว) */}
-            {noteCopied || qrExpired || checking || locked || msg ? (
+            {noteCopied || qrExpired || checking || locked || msg ? (<>
+              {/* ร้านสั่ง 18 พ.ย.: ลด 400001 (ลูกค้าถ่ายรูปจอ/ครอปสลิป อ่าน QR ไม่ได้) */}
+              <div className="bs-alert bad" style={{ marginTop: 18, textAlign: 'center', fontWeight: 700 }}>{t('uploadShot')}</div>
               <button
                 type="button"
-                disabled={checking || locked}
+                disabled={checking || locked || coolLeft > 0}
                 onClick={() => fileRef.current?.click()}
-                className={`bs-btn primary ${nudgeUpload && !checking && !locked ? 'upload-nudge' : ''}`}
-                style={{ marginTop: 18 }}
+                className={`bs-btn primary ${nudgeUpload && !checking && !locked && !coolLeft ? 'upload-nudge' : ''}`}
+                style={{ marginTop: 10 }}
               >
-                {checking ? (<><Loader2 className="w-5 h-5 bs-spin" /> {t('checkingSlip')}</>) : t('upload')}
+                {checking ? (<><Loader2 className="w-5 h-5 bs-spin" /> {t('checkingSlip')}</>)
+                  : coolLeft > 0 ? `⏳ ${t('uploadCool')} 0:${String(coolLeft).padStart(2, '0')}`
+                  : t('upload')}
               </button>
-            ) : (
+            </>) : (
               <button type="button" onClick={copyAndReveal} className="bs-btn ghost" style={{ marginTop: 18 }}>
                 📋 กดคัดลอกข้อความข้อ 1 ก่อน แล้วปุ่มอัปโหลดสลิปจะขึ้น
               </button>
