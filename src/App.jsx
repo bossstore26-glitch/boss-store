@@ -1027,7 +1027,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               {!qrExpired && (
                 <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>{t('step1a')}
                   <br /><b style={{ color: 'var(--red, #dc2626)' }}>{t('step1b')}</b>
-                  <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => { setNoteCopied(true); try { saveQr(); } catch { /* เพิกเฉย */ } }} /></span></li>
+                  <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => setNoteCopied(true)} /></span></li>
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>{t('step2')} (<b>{money} บาท</b>)<br />
                 <span className="bs-memo-hint">{t('memoHint')} <b>"บันทึกช่วยจำ"</b></span>
