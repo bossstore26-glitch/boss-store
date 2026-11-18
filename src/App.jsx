@@ -686,7 +686,7 @@ function VerifyBox({ pending, verify, onState }) {
         <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกข้อความนี้
           <SlipNote game={pending.game} gameId={pending.gameId} /></span></li>
         <li><i>2</i><span>สแกน QR โอน <b>{Number(verify.amount).toFixed(2)} บาท</b><br />จาก<b>บัญชีเดียวกับที่จ่ายครั้งแรก</b></span></li>
-        <li><i>3</i><span>{MEMO_STEP}<MemoExample /></span></li>
+        <li><i>3</i><span>{MEMO_STEP}<MemoExample amount={pending.amount} selectedGame={pending.game} playerId={pending.gameId} /></span></li>
         <li><i>4</i><span>อัปรูปสลิปจากแอปธนาคาร (ห้ามถ่ายจากจอ)</span></li>
       </ol>
       <div className="bs-qr" style={{ marginTop: 10 }}>
@@ -710,63 +710,103 @@ function VerifyBox({ pending, verify, onState }) {
 
 // พร้อมเพย์ธนาคารร้าน: สแกนจ่าย → อัปโหลดสลิป → บอทตรวจสลิปกับธนาคาร (Slip2Go) แล้วส่งเหรียญ
 
-// 18 พ.ย.: ภาพตัวอย่างตำแหน่งช่องบันทึกช่วยจำในแอปธนาคาร (โทนเข้ม เข้ากับธีมเว็บ)
-function MemoExample() {
+// 18 พ.ย.: ตัวอย่างแอนิเมชันวิธีวางข้อความในช่อง "บันทึกช่วยจำ" ของแอปธนาคาร
+function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176' }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setStep((p) => (p + 1) % 3), 1500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const memoText = `เติม ${selectedGame === 'siam' ? 'Siam' : 'Royal'} ไอดี ${playerId || '4873176'} เพจ BOSS STORE`;
+
   return (
-    <div className="mt-2 rounded-xl border border-amber-500/30 bg-[#1a1815] p-2.5">
-      <div className="mb-1.5 flex items-center justify-between text-[11px] text-zinc-400">
-        <span>{t('memoTitle')}</span>
-        <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-medium text-amber-300">{t('memoScroll')}</span>
+    <div className="my-3 flex flex-col items-center">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-amber-300">
+        <span className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+        <span>ตัวอย่างวิธีวางข้อความในแอปธนาคาร (ทำตาม 3 วิ)</span>
       </div>
 
-      <svg
-        viewBox="0 0 320 96"
-        className="w-full h-auto rounded-lg bg-[#12110f] border border-zinc-800"
-        role="img"
-        aria-label={t('memoTitle')}
-      >
-        <rect x="8" y="8" width="304" height="80" rx="8" fill="#1e1c18" />
+      <div className="relative w-full max-w-[275px] rounded-[28px] border-[3px] border-zinc-700 bg-[#141311] p-3 shadow-2xl select-none">
+        <div className="mx-auto mb-2.5 h-3.5 w-20 rounded-full bg-black" />
 
-        <text x="20" y="29" fill="#d4d4d8" fontSize="12" fontWeight="600" fontFamily="sans-serif">
-          {t('memoField')}
-        </text>
+        <div className="mb-2 flex items-center justify-between border-b border-zinc-800 pb-1.5 px-1">
+          <span className="text-xs text-zinc-400">‹</span>
+          <span className="text-xs font-semibold text-white">ยืนยันการโอนเงิน</span>
+          <span className="w-3" />
+        </div>
 
-        <rect
-          x="18"
-          y="37"
-          width="196"
-          height="36"
-          rx="6"
-          fill="#12110f"
-          stroke="#f59e0b"
-          strokeWidth="1.5"
-        />
-        <text x="28" y="59" fill="#fbbf24" fontSize="11" fontWeight="500" fontFamily="sans-serif">
-          {t('memoSample')}
-        </text>
+        <div className="mb-2.5 flex justify-between rounded-xl bg-[#1b1916] px-3 py-2 text-[11px] opacity-60">
+          <span className="text-zinc-400">ยอดโอน</span>
+          <span className="font-semibold text-white">{Number(amount || 20).toFixed(2)} บาท</span>
+        </div>
 
-        <path
-          d="M236 55 L220 55 M226 48 L219 55 L226 62"
-          stroke="#facc15"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-
-        <rect x="240" y="41" width="64" height="28" rx="6" fill="#facc15" />
-        <text
-          x="272"
-          y="59"
-          fill="#18181b"
-          fontSize="12"
-          fontWeight="700"
-          textAnchor="middle"
-          fontFamily="sans-serif"
+        <div
+          className={`relative rounded-xl border-2 p-2.5 transition-all duration-300 ${
+            step === 2
+              ? 'border-emerald-400 bg-emerald-950/20 shadow-[0_0_15px_rgba(52,211,153,0.2)]'
+              : 'border-amber-400 bg-[#1e1b15] shadow-[0_0_15px_rgba(251,191,36,0.2)]'
+          }`}
         >
-          {t('memoHere')}
-        </text>
-      </svg>
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-zinc-200">บันทึกช่วยจำ (Memo)</span>
+            {step === 2 && (
+              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                ✓ เรียบร้อย
+              </span>
+            )}
+          </div>
+
+          <div
+            className={`absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 transition-all duration-200 ${
+              step === 1 ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'
+            }`}
+          >
+            <div className="relative rounded-lg bg-zinc-100 px-3 py-1 text-[11px] font-extrabold text-zinc-900 shadow-lg">
+              วาง (Paste)
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 bg-zinc-100" />
+            </div>
+          </div>
+
+          <div className="relative min-h-[42px] rounded-lg border border-zinc-700 bg-[#12110f] px-2.5 py-2 text-xs leading-snug flex items-center">
+            {step === 0 && (
+              <span className="text-zinc-500 flex items-center gap-1">
+                <span>แตะช่องนี้...</span>
+                <span className="inline-block animate-bounce text-sm">👆</span>
+              </span>
+            )}
+            {step === 1 && (
+              <span className="text-amber-300/80 flex items-center gap-1">
+                <span className="inline-block h-3.5 w-0.5 bg-amber-400 animate-pulse" />
+                <span>กดปุ่ม "วาง" ด้านบน</span>
+              </span>
+            )}
+            {step === 2 && <span className="font-medium text-amber-300">{memoText}</span>}
+          </div>
+
+          <div className="mt-2 flex items-center justify-between">
+            <div className="flex gap-1">
+              {[0, 1, 2].map((dot) => (
+                <span key={dot}
+                  className={`h-1.5 rounded-full transition-all ${step === dot ? 'w-4 bg-amber-400' : 'w-1.5 bg-zinc-700'}`} />
+              ))}
+            </div>
+            <span className="rounded-md bg-gradient-to-r from-yellow-400 to-orange-500 px-2 py-0.5 text-[11px] font-extrabold text-zinc-950">
+              {step === 2 ? 'กดโอนได้เลย!' : '⬅ วางข้อความตรงนี้!'}
+            </span>
+          </div>
+        </div>
+
+        <div
+          className={`mt-2.5 rounded-lg py-1.5 text-center text-xs font-semibold transition-colors duration-300 ${
+            step === 2 ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-500'
+          }`}
+        >
+          ยืนยัน
+        </div>
+
+        <div className="mx-auto mt-2 h-1 w-24 rounded-full bg-zinc-700" />
+      </div>
     </div>
   );
 }
@@ -1031,7 +1071,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>{t('step2')} (<b>{money} บาท</b>)<br />
                 <span className="bs-memo-hint">{t('memoHint')} <b>"บันทึกช่วยจำ"</b></span>
-            <MemoExample /></span></li>
+            <MemoExample amount={pending.amount} selectedGame={pending.game} playerId={pending.gameId} /></span></li>
               <li><i>{qrExpired ? 2 : 3}</i><span>{t('step3')}<br />เพื่อ<b style={{ color: 'var(--good, #22c55e)' }}>{t('step3b')}</b></span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
