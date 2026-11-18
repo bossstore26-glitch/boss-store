@@ -545,7 +545,10 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-qrbox{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;text-align:left}
 .bs-qrbox .big{font:800 42px/1 Prompt,sans-serif;color:var(--ink)}
 .bs-qrbox .big small{font:600 15px/1 Prompt,sans-serif;color:var(--muted);margin-left:6px}
-.bs-qr{background:#fff;border-radius:16px;padding:8px;margin:14px auto 0;width:fit-content}
+.bs-qr{background:#fff;border-radius:16px;padding:8px;margin:14px auto 0;width:fit-content;overflow:hidden}
+.bs-qr-reveal{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:14px 20px;border:0;border-radius:14px;
+  background:#f5b524;color:#1c1915;font:700 16px/1.4 Prompt,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap}
+.bs-qr-reveal:hover{filter:brightness(1.06)}
 .bs-timer{text-align:center;font-size:13px;color:var(--muted);margin-top:8px}
 .bs-timer b{font:800 16px/1 Prompt,sans-serif;color:var(--ink);margin:0 4px}
 .bs-timer.low b{color:var(--bad)}
@@ -692,7 +695,19 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   const [status, setStatus] = useState('idle');
   const [bonus, setBonus] = useState(0);
   const [verify, setVerify] = useState(null);
-  const [noteCopied, setNoteCopied] = useState(false);  // กดคัดลอกบันทึกแล้ว → ค่อยโชว์ปุ่มบันทึกภาพ QR
+  // กดคัดลอกบันทึกแล้ว → ค่อยโชว์ QR (เบลอไว้ก่อน ร้านสั่ง 18 พ.ย.) + ปุ่มบันทึกภาพ QR · จำต่อออเดอร์ (รีเฟรชไม่ต้องกดใหม่)
+  const copiedKey = `bossstore_copied_${pending.id}`;
+  const [noteCopied, setNoteCopiedRaw] = useState(() => {
+    try { return localStorage.getItem(copiedKey) === '1'; } catch { return false; }
+  });
+  const setNoteCopied = (v) => {
+    setNoteCopiedRaw(v);
+    try { if (v) localStorage.setItem(copiedKey, '1'); } catch { /* ข้ามได้ */ }
+  };
+  const copyAndReveal = async () => {
+    await copyToClipboard(slipNote(pending.game, pending.gameId));
+    setNoteCopied(true);
+  };
   const [msg, setMsg] = useState('');
   const [msgBad, setMsgBad] = useState(false);
   // QR ใช้ได้ 10 นาที (กันเซฟ QR ไว้ให้คนอื่นจ่ายทีหลัง) หมดแล้วยังอัปโหลดสลิปได้ถ้าโอนไปแล้ว
@@ -861,8 +876,15 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         <div className="bs-gold" style={{ font: '700 14px/1.4 Prompt,sans-serif' }}>{formatChips(pending.chips, pending.game)} เหรียญ</div>
         {!paid && !review && !qrExpired && (
           <>
-            <div className="bs-qr">
-              <canvas ref={canvasRef} className="w-60 h-auto sm:w-64 block" />
+            <div className="bs-qr" style={{ position: 'relative' }}>
+              <canvas ref={canvasRef} className="w-60 h-auto sm:w-64 block"
+                style={noteCopied ? undefined : { filter: 'blur(9px)', pointerEvents: 'none', userSelect: 'none' }}
+                aria-hidden={!noteCopied} />
+              {!noteCopied && (
+                <button type="button" className="bs-qr-reveal" onClick={copyAndReveal}>
+                  📋 คัดลอกข้อความ<br />แล้วแสดง QR
+                </button>
+              )}
             </div>
             <p className={`bs-timer ${secondsLeft <= 60 ? 'low' : ''}`}>
               เหลือ<b>{Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}</b>{t('qrExpiresIn')}
@@ -928,15 +950,22 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               <li><i>{qrExpired ? 2 : 3}</i><span>{t('step3')}<br />เพื่อ<b style={{ color: 'var(--good, #22c55e)' }}>{t('step3b')}</b></span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
-            <button
-              type="button"
-              disabled={checking || locked}
-              onClick={() => fileRef.current?.click()}
-              className={`bs-btn primary ${nudgeUpload && !checking && !locked ? 'upload-nudge' : ''}`}
-              style={{ marginTop: 18 }}
-            >
-              {checking ? (<><Loader2 className="w-5 h-5 bs-spin" /> {t('checkingSlip')}</>) : t('upload')}
-            </button>
+            {/* ร้านสั่ง 18 พ.ย.: ซ่อนปุ่มอัปสลิปจนกดคัดลอกข้อความ (QR หมดอายุ/เคยอัปแล้วมีข้อความผล = โชว์เสมอ เผื่อโอนไปแล้ว) */}
+            {noteCopied || qrExpired || checking || locked || msg ? (
+              <button
+                type="button"
+                disabled={checking || locked}
+                onClick={() => fileRef.current?.click()}
+                className={`bs-btn primary ${nudgeUpload && !checking && !locked ? 'upload-nudge' : ''}`}
+                style={{ marginTop: 18 }}
+              >
+                {checking ? (<><Loader2 className="w-5 h-5 bs-spin" /> {t('checkingSlip')}</>) : t('upload')}
+              </button>
+            ) : (
+              <button type="button" onClick={copyAndReveal} className="bs-btn ghost" style={{ marginTop: 18 }}>
+                📋 กดคัดลอกข้อความข้อ 1 ก่อน แล้วปุ่มอัปโหลดสลิปจะขึ้น
+              </button>
+            )}
             {msg && (
               <div className={`bs-alert ${msgBad ? 'bad' : 'good'}`} style={{ marginTop: 10, textAlign: 'center' }}>{msg}</div>
             )}
