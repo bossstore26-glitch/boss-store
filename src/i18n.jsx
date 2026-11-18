@@ -252,3 +252,6 @@ Object.assign(DICT.lo, { bankPickPlaceholder: 'ເລືອກທະນາຄາ
 Object.assign(DICT.th, { memoExample: 'ตัวอย่างช่อง “บันทึกช่วยจำ” ในแอปธนาคาร — วางข้อความที่คัดลอกไว้ตรงช่องนี้' });
 Object.assign(DICT.en, { memoExample: 'Example: the “Memo” field in your banking app — paste the copied text there' });
 Object.assign(DICT.lo, { memoExample: 'ຕົວຢ່າງຊ່ອງ “ບັນທຶກຊ່ວຍຈຳ” ໃນແອັບທະນາຄານ — ວາງຂໍ້ຄວາມທີ່ຄັດລອກໄວ້ບ່ອນນີ້' });
+Object.assign(DICT.th, { memoTitle: 'ตัวอย่างหน้ายืนยันโอนในแอปธนาคาร', memoScroll: 'เลื่อนลงล่างสุด', memoField: 'บันทึกช่วยจำ (Memo)', memoSample: 'เติม Royal ไอดี ... เพจ BOSS STORE', memoHere: 'วางตรงนี้!' });
+Object.assign(DICT.en, { memoTitle: 'Example: confirm screen in your banking app', memoScroll: 'scroll to the bottom', memoField: 'Note / Memo', memoSample: 'เติม Royal ID ... BOSS STORE page', memoHere: 'paste here!' });
+Object.assign(DICT.lo, { memoTitle: 'ຕົວຢ່າງໜ້າຢືນຢັນໂອນໃນແອັບທະນາຄານ', memoScroll: 'ເລື່ອນລົງລຸ່ມສຸດ', memoField: 'ບັນທຶກຊ່ວຍຈຳ (Memo)', memoSample: 'ເຕີມ Royal ID ... ເພຈ BOSS STORE', memoHere: 'ວາງບ່ອນນີ້!' });
