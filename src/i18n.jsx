@@ -249,3 +249,6 @@ Object.assign(DICT.lo, {
 Object.assign(DICT.th, { bankPickPlaceholder: 'เลือกธนาคารที่จะใช้โอน' });
 Object.assign(DICT.en, { bankPickPlaceholder: 'Select your bank' });
 Object.assign(DICT.lo, { bankPickPlaceholder: 'ເລືອກທະນາຄານທີ່ຈະໃຊ້ໂອນ' });
+Object.assign(DICT.th, { memoExample: 'ตัวอย่างช่อง “บันทึกช่วยจำ” ในแอปธนาคาร — วางข้อความที่คัดลอกไว้ตรงช่องนี้' });
+Object.assign(DICT.en, { memoExample: 'Example: the “Memo” field in your banking app — paste the copied text there' });
+Object.assign(DICT.lo, { memoExample: 'ຕົວຢ່າງຊ່ອງ “ບັນທຶກຊ່ວຍຈຳ” ໃນແອັບທະນາຄານ — ວາງຂໍ້ຄວາມທີ່ຄັດລອກໄວ້ບ່ອນນີ້' });

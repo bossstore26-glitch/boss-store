@@ -709,6 +709,42 @@ function VerifyBox({ pending, verify, onState }) {
 }
 
 // พร้อมเพย์ธนาคารร้าน: สแกนจ่าย → อัปโหลดสลิป → บอทตรวจสลิปกับธนาคาร (Slip2Go) แล้วส่งเหรียญ
+
+// 18 พ.ย.: ภาพตัวอย่างช่อง "บันทึกช่วยจำ" (SVG ฝังในโค้ด) — โทนฟ้า/เขียวเหมือนแอปธนาคารจริง
+function MemoExample() {
+  return (
+    <div style={{ margin: '10px 0 2px', padding: 10, borderRadius: 14, background: 'var(--card2)', border: '1px solid var(--line)' }}>
+      <svg viewBox="0 0 320 180" role="img" aria-label="ตัวอย่างช่องบันทึกช่วยจำในแอปธนาคาร"
+           style={{ width: '100%', height: 'auto', display: 'block' }}>
+        {/* เงาโทรศัพท์ */}
+        <rect x="120" y="9" width="84" height="168" rx="13" fill="#00000022" />
+        {/* ตัวเครื่อง */}
+        <rect x="118" y="6" width="84" height="168" rx="13" fill="#ffffff" stroke="#e2e8f0" />
+        {/* แถบหัวแอป (ฟ้า) */}
+        <path d="M118 19a13 13 0 0 1 13-13h58a13 13 0 0 1 13 13v9h-84z" fill="#0b6bb5" />
+        <rect x="146" y="12" width="28" height="4" rx="2" fill="#ffffff" opacity="0.85" />
+        {/* รายการในแอป */}
+        <rect x="126" y="38" width="30" height="5" rx="2.5" fill="#94a3b8" />
+        <rect x="160" y="38" width="34" height="5" rx="2.5" fill="#cbd5e1" />
+        <rect x="126" y="50" width="68" height="5" rx="2.5" fill="#e2e8f0" />
+        <rect x="126" y="62" width="52" height="5" rx="2.5" fill="#e2e8f0" />
+        {/* ช่องบันทึกช่วยจำ (ไฮไลต์ฟ้า) */}
+        <rect x="122" y="82" width="76" height="30" rx="7" fill="#f1f7ff" stroke="#0b6bb5" strokeWidth="2" />
+        <text x="160" y="96" textAnchor="middle" fontSize="7.5" fill="#0b6bb5" fontFamily="inherit">บันทึกช่วยจำ (Memo)</text>
+        <rect x="130" y="101" width="42" height="4" rx="2" fill="#bcd3ec" />
+        {/* ปุ่มยืนยัน (เขียว) */}
+        <rect x="126" y="150" width="68" height="14" rx="7" fill="#16a34a" />
+        <rect x="150" y="155" width="20" height="4" rx="2" fill="#ffffff" opacity="0.9" />
+        {/* ลูกศร + ป้าย */}
+        <path d="M232 97 L206 89 L206 105 Z" fill="#e7b14a" />
+        <rect x="232" y="85" width="86" height="24" rx="12" fill="#e0603e" />
+        <text x="275" y="101" textAnchor="middle" fontSize="9" fill="#ffffff" fontFamily="inherit">วางข้อความตรงนี้</text>
+      </svg>
+      <div className="bs-muted" style={{ fontSize: 11.5, marginTop: 6, textAlign: 'center' }}>{t('memoExample')}</div>
+    </div>
+  );
+}
+
 function BankPromptPayCard({ pending, onDone, onCancel }) {
   const canvasRef = useRef(null);
   const fileRef = useRef(null);
@@ -968,7 +1004,8 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
                   <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => { setNoteCopied(true); try { saveQr(); } catch { /* เพิกเฉย */ } }} /></span></li>
               )}
               <li><i>{qrExpired ? 1 : 2}</i><span>{t('step2')} (<b>{money} บาท</b>)<br />
-                <span className="bs-memo-hint">{t('memoHint')} <b>"บันทึกช่วยจำ"</b></span></span></li>
+                <span className="bs-memo-hint">{t('memoHint')} <b>"บันทึกช่วยจำ"</b></span>
+            <MemoExample /></span></li>
               <li><i>{qrExpired ? 2 : 3}</i><span>{t('step3')}<br />เพื่อ<b style={{ color: 'var(--good, #22c55e)' }}>{t('step3b')}</b></span></li>
             </ol>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
