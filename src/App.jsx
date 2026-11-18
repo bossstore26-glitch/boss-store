@@ -547,8 +547,9 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-qrbox .big small{font:600 15px/1 Prompt,sans-serif;color:var(--muted);margin-left:6px}
 .bs-qr{background:#fff;border-radius:16px;padding:8px;margin:14px auto 0;width:fit-content;overflow:hidden}
 .bs-qr-reveal{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:14px 20px;border:0;border-radius:14px;
-  background:#f5b524;color:#1c1915;font:700 16px/1.4 Prompt,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap}
-.bs-qr-reveal:hover{filter:brightness(1.06)}
+  background:#fff;color:#1c1915;font:700 16px/1.4 Prompt,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;
+  border:2px solid #1c1915}
+.bs-qr-reveal:hover{background:#f3f3f3}
 .bs-timer{text-align:center;font-size:13px;color:var(--muted);margin-top:8px}
 .bs-timer b{font:800 16px/1 Prompt,sans-serif;color:var(--ink);margin:0 4px}
 .bs-timer.low b{color:var(--bad)}
@@ -882,7 +883,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
                 aria-hidden={!noteCopied} />
               {!noteCopied && (
                 <button type="button" className="bs-qr-reveal" onClick={copyAndReveal}>
-                  📋 คัดลอกข้อความ<br />แล้วแสดง QR
+                  📋 คัดลอกข้อความด้านล่าง<br />เพื่อแสดง QR code
                 </button>
               )}
             </div>
