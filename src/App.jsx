@@ -547,9 +547,8 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-qrbox .big small{font:600 15px/1 Prompt,sans-serif;color:var(--muted);margin-left:6px}
 .bs-qr{background:#fff;border-radius:16px;padding:8px;margin:14px auto 0;width:fit-content;overflow:hidden}
 .bs-qr-reveal{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:14px 20px;border:0;border-radius:14px;
-  background:#fff;color:#1c1915;font:700 16px/1.4 Prompt,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;
-  border:2px solid #1c1915}
-.bs-qr-reveal:hover{background:#f3f3f3}
+  background:#fff;color:#1c1915;font:700 16px/1.4 Prompt,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:default;white-space:nowrap;
+  border:2px solid #1c1915;pointer-events:none;user-select:none;text-align:center}
 .bs-timer{text-align:center;font-size:13px;color:var(--muted);margin-top:8px}
 .bs-timer b{font:800 16px/1 Prompt,sans-serif;color:var(--ink);margin:0 4px}
 .bs-timer.low b{color:var(--bad)}
@@ -882,9 +881,10 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
                 style={noteCopied ? undefined : { filter: 'blur(9px)', pointerEvents: 'none', userSelect: 'none' }}
                 aria-hidden={!noteCopied} />
               {!noteCopied && (
-                <button type="button" className="bs-qr-reveal" onClick={copyAndReveal}>
+                // ร้านสั่ง 18 พ.ย.: เป็นแค่ป้าย กดไม่ได้ (ลูกค้าต้องกดคัดลอกที่ข้อ 1 เอง)
+                <div className="bs-qr-reveal" aria-hidden="true">
                   📋 คัดลอกข้อความด้านล่าง<br />เพื่อแสดง QR code
-                </button>
+                </div>
               )}
             </div>
             <p className={`bs-timer ${secondsLeft <= 60 ? 'low' : ''}`}>
