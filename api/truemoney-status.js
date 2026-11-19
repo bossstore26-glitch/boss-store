@@ -21,8 +21,10 @@ export default async function handler(req, res) {
     // review = จ่ายแล้ว แต่ร้านกำลังตรวจก่อนส่ง (ไอดีใหม่ / เบอร์ไม่ตรง)
     // delivered = บอทส่งเหรียญเข้าไอดีเสร็จแล้ว (หน้าเว็บขึ้นป๊อปอัป)
     // checking = พร้อมเพย์: บอทกำลังรอธนาคารยืนยันสลิป / failed = บอทตรวจซ้ำเองแล้วไม่ผ่าน (มี message)
-    const status = ['paid', 'review', 'delivered', 'checking', 'failed'].includes(d.status) ? d.status : 'waiting';
-    if (status === 'failed') return res.status(200).json({ status, message: d.message || '' });
+    const status = ['paid', 'review', 'delivered', 'checking', 'failed', 'cancelled'].includes(d.status) ? d.status : 'waiting';
+    // cancelled = ร้านกดไม่ส่ง/โอนเงินคืน → หน้าเว็บแจ้งแล้วกลับหน้าแรก (19 พ.ย.)
+    if (status === 'cancelled') return res.status(200).json({ status, message: String(d.message || '').slice(0, 200) });
+    if (status === 'failed') return res.status(200).json({ status, message: d.message || '', cooldown: Number(d.cooldown) || 0 });
     // bonus = เหรียญแถมโปรที่บอทส่งไปจริงกับออเดอร์นี้ (โชว์ในป๊อปอัปส่งเสร็จ)
     if (status === 'delivered') return res.status(200).json({ status, bonus: Number(d.bonus) || 0 });
     // verify = ร้านกด 📎 ขอสลิปยืนยัน 0.10 บาท → หน้าเว็บขึ้น QR 0.10 + บันทึกช่วยจำ + ปุ่มอัป (ร้านสั่ง 14 พ.ย.)
