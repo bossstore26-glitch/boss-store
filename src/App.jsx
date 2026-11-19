@@ -915,6 +915,8 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
         const r = await fetch(`/api/truemoney-status?code=${encodeURIComponent(pending.id)}`);
         const d = await r.json();
         if (stopped) return;
+        // 19 พ.ย. ร้านสั่ง: ร้านกดไม่ส่ง/โอนเงินคืนแล้ว → แจ้งแล้วกลับหน้าแรก
+        if (d.status === 'cancelled') { alert(d.message || 'รายการนี้ถูกยกเลิก'); onDone(); return; }
         if (d.status === 'delivered') {
           setBonus(Number(d.bonus) || 0);
           setStatus('delivered');
@@ -1207,6 +1209,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
         const r = await fetch(`/api/truemoney-status?code=${encodeURIComponent(pending.id)}`);
         const d = await r.json();
         if (stopped) return;
+        if (d.status === 'cancelled') { alert(d.message || 'รายการนี้ถูกยกเลิก'); onDone(); return; }
         if (d.status === 'delivered') {
           setBonus(Number(d.bonus) || 0);
           setStatus('delivered');
