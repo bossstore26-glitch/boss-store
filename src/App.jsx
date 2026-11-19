@@ -1148,12 +1148,12 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
       </div>
 
       <div className="bs-row" style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-        {paid ? (
+        {paid || review ? (
           <>
             <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
+            {/* 19 พ.ย. ร้านสั่ง: ปุ่มเล็กมุมขวาล่าง กลับหน้าแรก */}
+            <button type="button" onClick={onDone} className="bs-link muted" style={{ whiteSpace: 'nowrap', flex: 'none' }}>🏠 {t('goHome')}</button>
           </>
-        ) : review ? (
-          <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
         ) : (
           <>
             <button onClick={cancel} className="bs-link muted">{t('cancelEdit')}</button>
@@ -1315,6 +1315,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
         {paid ? (
           <>
             <span>ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน</span>
+            <button type="button" onClick={onDone} className="bs-link muted" style={{ whiteSpace: 'nowrap', flex: 'none' }}>🏠 {t('goHome')}</button>
           </>
         ) : (
           <>

@@ -210,7 +210,7 @@ Object.assign(DICT.th, {
   uploadCool: 'ธนาคารกำลังบันทึกรายการ อัปใหม่ได้ใน',
   uploadHint: 'สลิปปลอม สลิปซ้ำ หรือยอดไม่ตรง ระบบจะไม่ส่งเหรียญ',
   uploadHint2: 'อัปโหลดได้ภายใน 24 ชม. (ปิดหน้านี้แล้วกลับมาใหม่ได้)',
-  addMore: 'เติมเพิ่ม', cancelEdit: 'ยกเลิก / แก้ไขยอด', helpCode: 'ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน',
+  addMore: 'เติมเพิ่ม', cancelEdit: 'ยกเลิก / แก้ไขยอด', helpCode: 'ติดปัญหาเรื่องเหรียญ แจ้งเพจพร้อมรหัสด้านบน', goHome: 'กลับหน้าแรก',
 });
 Object.assign(DICT.en, {
   payAmount: 'Amount to transfer', mustMatch: 'must match exactly', bahtUnit: 'THB',
@@ -230,7 +230,7 @@ Object.assign(DICT.en, {
   uploadCool: 'Bank is recording the transfer, upload again in',
   uploadHint: 'Fake, duplicate, or mismatched slips are rejected',
   uploadHint2: 'You can upload within 24 hours (you may close and come back)',
-  addMore: 'Top up again', cancelEdit: 'Cancel / edit amount', helpCode: 'Problem with coins? Message us with the code above',
+  addMore: 'Top up again', cancelEdit: 'Cancel / edit amount', helpCode: 'Problem with coins? Message us with the code above', goHome: 'Home',
 });
 Object.assign(DICT.lo, {
   payAmount: 'ຈຳນວນທີ່ຕ້ອງໂອນ', mustMatch: 'ຕ້ອງຕົງຕາມນີ້', bahtUnit: 'ບາດ',
@@ -250,7 +250,7 @@ Object.assign(DICT.lo, {
   uploadCool: 'ທະນາຄານກຳລັງບັນທຶກລາຍການ ອັບໃໝ່ໄດ້ໃນ',
   uploadHint: 'ສະລິບປອມ ສະລິບຊ້ຳ ຫຼື ຍອດບໍ່ຕົງ ລະບົບຈະບໍ່ສົ່ງຫຼຽນ',
   uploadHint2: 'ອັບໂຫຼດໄດ້ພາຍໃນ 24 ຊມ (ປິດໜ້ານີ້ແລ້ວກັບມາໃໝ່ໄດ້)',
-  addMore: 'ເຕີມເພີ່ມ', cancelEdit: 'ຍົກເລີກ / ແກ້ໄຂຍອດ', helpCode: 'ມີບັນຫາຫຼຽນ ແຈ້ງເພຈພ້ອມລະຫັດຂ້າງເທິງ',
+  addMore: 'ເຕີມເພີ່ມ', cancelEdit: 'ຍົກເລີກ / ແກ້ໄຂຍອດ', helpCode: 'ມີບັນຫາຫຼຽນ ແຈ້ງເພຈພ້ອມລະຫັດຂ້າງເທິງ', goHome: 'ກັບໜ້າຫຼັກ',
 });
 Object.assign(DICT.th, { bankPickPlaceholder: 'เลือกธนาคารที่จะใช้โอน' });
 Object.assign(DICT.en, { bankPickPlaceholder: 'Select your bank' });
