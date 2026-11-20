@@ -594,6 +594,8 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-codenote{margin-top:6px;font-size:12px;color:var(--muted)}
 .bs-steps{list-style:none;padding:0;margin:0;display:grid;gap:12px}
 .bs-steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink)}
+.bs-memo-why{margin-top:8px;padding:8px 10px;border-radius:12px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.45);font-size:12.5px;line-height:1.55;color:var(--ink)}
+.bs-memo-why b{color:var(--good,#22c55e)}
 .bs-memo-hint{display:block;margin-top:6px;color:#f5b81c;font-weight:800;line-height:1.5}
 .bs-memo-hint b{color:#f5b81c;text-decoration:underline;text-underline-offset:3px}
 .bs-steps li i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--card);font:700 12px/22px Prompt,sans-serif;text-align:center;font-style:normal}
@@ -1110,7 +1112,10 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               {!qrExpired && (
                 <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>{t('step1a')}
                   <br /><b style={{ color: 'var(--red, #dc2626)' }}>{t('step1b')}</b>
-                  <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => { setNoteCopied(true); scrollStep(step2Ref); }} /></span></li>
+                  <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => { setNoteCopied(true); scrollStep(step2Ref); }} />
+                  {/* 20 พ.ย. ร้านสั่ง: บอทอ่านบันทึกจากสลิปเอง ไอดีใหม่ใส่ถูก = ส่งเลย ไม่ต้องรอร้าน → บอกลูกค้าให้อยากใส่ */}
+                  <div className="bs-memo-why">⚡ วางข้อความนี้ในช่อง "บันทึกช่วยจำ" ตอนโอน = <b>ได้เหรียญทันที</b>
+                    {pending.verified === false && pending.amount <= 100 ? ' ไม่ต้องรอร้านตรวจไอดีใหม่' : ''}<br />ไม่ใส่ = อาจต้องรอร้านตรวจ</div></span></li>
               )}
               <li ref={step2Ref}><i>{qrExpired ? 1 : 2}</i><span>{t('step2')} (<b>{money} บาท</b>)<br />
                 <span className="bs-memo-hint">{t('memoHint')} <b>"บันทึกช่วยจำ"</b></span>
