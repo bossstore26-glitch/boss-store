@@ -1148,7 +1148,8 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
               </button>
             </>) : (
               <button type="button" onClick={copyAndReveal} className="bs-btn ghost" style={{ marginTop: 18 }}>
-                📋 กดคัดลอกข้อความข้อ 1 ก่อน แล้วปุ่มอัปโหลดสลิปจะขึ้น
+                {/* 20 พ.ย. ร้านสั่ง: ตัดบรรทัดตรงวรรค ไม่ให้คำขาดกลาง */}
+                📋 กดคัดลอกข้อความข้อ 1 ก่อน<br />แล้วปุ่มอัปโหลดสลิปจะขึ้น
               </button>
             )}
             {msg && (
