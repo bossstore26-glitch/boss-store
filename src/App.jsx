@@ -1390,6 +1390,30 @@ export default function App() {
   };
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(loadPending);
+  // 20 พ.ย. ร้านสั่ง: ลิงก์กู้ออเดอร์ ?order=รหัส (ร้านส่งให้ลูกค้าตอนขอสลิปยืนยัน 0.10 บาท)
+  // ลูกค้าเปิดจากแชท/เบราว์เซอร์อื่นที่ไม่มีออเดอร์ค้างในเครื่อง → เปิดหน้าชำระเงินเดิม ไม่เด้งหน้าแรก
+  useEffect(() => {
+    let code = '';
+    try { code = (new URLSearchParams(window.location.search).get('order') || '').toUpperCase(); } catch { return; }
+    if (!/^[A-Z0-9]{6}$/.test(code)) return;
+    const clearParam = () => {
+      try { window.history.replaceState(null, '', window.location.pathname); } catch { /* ข้ามได้ */ }
+    };
+    const cur = loadPending();
+    if (cur && cur.id === code) { clearParam(); return; }
+    fetch(`/api/order-info?code=${encodeURIComponent(code)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        clearParam();
+        if (d && d.found && d.id === code) {
+          savePending(d);
+          setPending(d);
+        } else {
+          alert('ไม่พบรายการนี้ หรือรายการหมดอายุแล้ว กรุณาทักแชทเพจ BOSS STORE');
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [showPackages, setShowPackages] = useState(false);
   const [confirming, setConfirming] = useState(false);
   // 12 พ.ย.: ค้นไอดีในเกมก่อนจ่าย ให้ลูกค้าเห็นตัวละคร (กันกรอกไอดีผิด) { status: checking|found|not_found|skip, image }
