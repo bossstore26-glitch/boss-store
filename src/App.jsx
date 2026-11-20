@@ -594,6 +594,8 @@ html.theme-dark .bs-btn.primary.pp:hover{background:#8b7fff}
 .bs-codenote{margin-top:6px;font-size:12px;color:var(--muted)}
 .bs-steps{list-style:none;padding:0;margin:0;display:grid;gap:12px}
 .bs-steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink)}
+@keyframes bsMemoPop{0%{opacity:0;transform:translateY(6px) scale(.92)}60%{opacity:1;transform:translateY(-1px) scale(1.03)}100%{opacity:1;transform:none}}
+.bs-memo-pop{display:inline-block;animation:bsMemoPop .45s ease-out .35s both}
 .bs-memo-why{margin-top:10px;display:grid;gap:6px;font-size:13.5px;line-height:1.4;color:var(--ink)}
 .bs-memo-why .row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
 .bs-memo-why .row.good{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.45)}
@@ -726,7 +728,7 @@ function VerifyBox({ pending, verify, onState }) {
 function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176', fit = false }) {
   const [step, setStep] = useState(0);
   useEffect(() => {
-    const timer = setInterval(() => setStep((p) => (p + 1) % 3), 1500);
+    const timer = setInterval(() => setStep((p) => (p + 1) % 3), 1800);
     return () => clearInterval(timer);
   }, []);
 
@@ -734,87 +736,88 @@ function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176'
 
   return (
     <div className="my-2 flex w-full flex-col items-center select-none">
-      <div className={`relative ${fit ? 'w-full max-w-[285px]' : 'w-[285px]'} shrink-0 rounded-[36px] border-[4px] border-zinc-600 bg-[#181715] p-2.5 shadow-2xl`}>
-        <div className="relative overflow-hidden rounded-[26px] bg-[#161513] px-3 pt-2 pb-3 border border-zinc-800">
-          <div className="mx-auto mb-2 h-4 w-24 rounded-full bg-black" />
-
-          <div className="mb-2.5 flex items-center justify-between border-b border-zinc-800/80 pb-2">
-            <span className="text-sm font-medium text-zinc-400">‹</span>
-            <span className="text-xs font-bold text-white">ยืนยันการโอนเงิน</span>
-            <span className="w-3" />
+      <div className="mb-2 text-[12.5px] font-bold text-zinc-300">📱 ตัวอย่างหน้าจอตอนโอนในแอปธนาคาร</div>
+      <div className={`relative ${fit ? 'w-full max-w-[285px]' : 'w-[285px]'} shrink-0 rounded-[36px] border-[4px] border-zinc-500 bg-zinc-900 p-2 shadow-2xl`}>
+        {/* 20 พ.ย. ร้านสั่ง: จอในมือถือเป็นโหมดสว่างแบบแอปธนาคารจริง (โหมดมืดกลืนกับเว็บ ลูกค้าดูไม่ออก) */}
+        <div className="relative overflow-hidden rounded-[28px] bg-[#FFFFFF] pb-3">
+          <div className="px-3 pt-2 pb-2 border-b border-zinc-200">
+            <div className="mx-auto mb-2 h-4 w-24 rounded-full bg-black" />
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-zinc-500">‹</span>
+              <span className="text-xs font-bold text-zinc-900">ยืนยันการโอนเงิน</span>
+              <span className="rounded bg-[#113566] px-1.5 py-0.5 text-[8.5px] font-extrabold tracking-wide text-white">PromptPay</span>
+            </div>
           </div>
 
-          <div className="mb-2.5 space-y-2 rounded-xl bg-[#1e1c19] p-2.5 text-[11px]">
-            <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
-              <div className="h-5 w-5 rounded-full bg-purple-700/70 blur-[1px]" />
-              <div className="h-2.5 w-24 rounded bg-zinc-600/60 blur-[1.5px]" />
+          <div className="px-3 pt-2.5">
+          <div className="mb-2.5 rounded-xl border border-zinc-200 bg-zinc-50 p-2.5 text-[11px]">
+            <div className="mb-2 text-center">
+              <div className="text-[10px] text-zinc-500">จำนวนเงิน</div>
+              <div className="text-xl font-extrabold text-zinc-900">{Number(amount || 20).toFixed(2)} <span className="text-xs font-semibold">บาท</span></div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-400">ยอดเงิน</span>
-              <span className="font-bold text-white">{Number(amount || 20).toFixed(2)} บาท</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-400">ค่าธรรมเนียม</span>
-              <span className="text-zinc-400">0.00 บาท</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-400">บัญชีผู้รับ</span>
-              <span className="font-semibold text-zinc-200">BOSS STORE</span>
-            </div>
-            <div className="flex justify-end">
-              <div className="h-2 w-28 rounded bg-zinc-600/50 blur-[1.5px]" />
+            <div className="space-y-1.5 border-t border-zinc-200 pt-2">
+              <div className="flex justify-between">
+                <span className="text-zinc-500">ไปยัง</span>
+                <span className="font-bold text-zinc-900">บอส สโตร์</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500">พร้อมเพย์</span>
+                <span className="text-zinc-700">XXX-XXX-1209</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500">ค่าธรรมเนียม</span>
+                <span className="text-zinc-700">0.00 บาท</span>
+              </div>
             </div>
           </div>
 
           <div className="relative my-2">
             <div
-              className={`rounded-xl border-2 p-2.5 transition-all duration-300 ${
+              className={`rounded-xl border-2 bg-white p-2.5 transition-all duration-300 ${
                 step === 2
-                  ? 'border-emerald-400 bg-[#17221b] shadow-[0_0_16px_rgba(52,211,153,0.25)]'
-                  : 'border-amber-400 bg-[#221d15] shadow-[0_0_16px_rgba(251,191,36,0.25)]'
+                  ? 'border-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.35)]'
+                  : 'border-amber-400 shadow-[0_0_14px_rgba(245,158,11,0.35)]'
               }`}
             >
               <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-zinc-200">บันทึกช่วยจำ (Memo)</span>
+                <span className="text-[11px] font-semibold text-zinc-700">บันทึกช่วยจำ (Memo)</span>
                 {step === 2 && (
-                  <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">
-                    ✓ วางแล้ว
+                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+                    ✓ วางเรียบร้อย
                   </span>
                 )}
               </div>
 
               <div
-                className={`absolute top-5 left-1/2 -translate-x-1/2 z-20 transition-all duration-200 ${
+                className={`absolute top-[26px] right-4 z-20 transition-all duration-200 ${
                   step === 1 ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'
                 }`}
               >
-                <div className="relative rounded-md bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-zinc-900 shadow-lg">
+                <div className="relative rounded-md bg-zinc-800 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-lg">
                   วาง (Paste)
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 bg-white" />
+                  <div className="absolute -bottom-1 right-4 h-2 w-2 rotate-45 bg-zinc-800" />
                 </div>
               </div>
 
-              <div className="relative h-[48px] shrink-0 rounded-lg border border-zinc-700 bg-[#12110f] px-2.5 py-1.5 text-xs leading-tight flex items-center overflow-hidden">
+              <div className={`relative h-[48px] shrink-0 rounded-lg border px-2.5 py-1.5 text-xs leading-tight flex items-center overflow-hidden transition-colors duration-300 ${
+                step === 2 ? 'border-emerald-400 bg-emerald-50' : 'border-zinc-300 bg-zinc-50'}`}>
                 {step === 0 && (
-                  <span className="text-zinc-500 flex items-center gap-1 text-[11px]">
-                    <span>แตะช่องนี้...</span>
-                    <span className="inline-block animate-bounce text-sm">👆</span>
+                  <span className="text-zinc-400 flex items-center gap-1 text-[11px]">
+                    <span className="inline-block h-3.5 w-0.5 bg-zinc-400 animate-pulse" />
+                    <span>แตะช่องนี้</span>
+                    <span className="inline-block animate-bounce text-base">👆</span>
                   </span>
                 )}
-                {step === 1 && (
-                  <span className="text-amber-300/80 flex items-center gap-1 text-[11px]">
-                    <span className="inline-block h-3.5 w-0.5 bg-amber-400 animate-pulse" />
-                    <span>กดปุ่ม "วาง"</span>
-                  </span>
-                )}
-                {step === 2 && (
-                  <span className="font-medium text-[11px] leading-tight text-white">{memoText}</span>
+                {step >= 1 && (
+                  // จังหวะ 2: กด "วาง" แล้วข้อความจริงของออเดอร์เด้งเข้าช่อง · จังหวะ 3: ค้างไว้ + กรอบเขียว
+                  <span key={step === 1 ? 'pop' : 'stay'}
+                    className={`font-semibold text-[11px] leading-tight text-zinc-900 ${step === 1 ? 'bs-memo-pop' : ''}`}>{memoText}</span>
                 )}
               </div>
             </div>
 
             <div
-              className={`absolute -right-2 -bottom-3 z-20 flex items-center transition-transform duration-300 ${
+              className={`absolute right-2 -bottom-3 z-20 flex items-center transition-transform duration-300 ${
                 step === 2 ? 'scale-95' : 'scale-100 animate-pulse'
               }`}
             >
@@ -827,13 +830,14 @@ function MemoExample({ amount = 20, selectedGame = 'royal', playerId = '4873176'
 
           <div
             className={`mt-4 rounded-lg py-2 text-center text-xs font-bold transition-colors duration-300 ${
-              step === 2 ? 'bg-emerald-600 text-white shadow-md' : 'bg-zinc-700/80 text-zinc-400'
+              step === 2 ? 'bg-[#1f7a5c] text-white shadow-md' : 'bg-zinc-300 text-zinc-500'
             }`}
           >
             ยืนยัน
           </div>
 
-          <div className="mx-auto mt-2.5 h-1 w-24 rounded-full bg-zinc-600" />
+          <div className="mx-auto mt-2.5 h-1 w-24 rounded-full bg-zinc-400" />
+          </div>
         </div>
       </div>
     </div>
