@@ -1537,14 +1537,18 @@ export default function App() {
       return undefined;
     }
     let alive = true;
+    let timer;
     setPlayerCheck({ status: 'checking' });
-    lookupPlayer(game, gameId).then((d) => {
+    // 21 พ.ย. ร้านแจ้ง "บางทีรูปไม่ขึ้น": ร้านไม่ว่าง/ถามไม่ได้ → ลองใหม่อีก 2 ครั้ง (ห่าง 3 วิ) ก่อนยอมข้าม
+    const attempt = (left) => lookupPlayer(game, gameId).then((d) => {
       if (!alive) return;
       if (d.status === 'found' && d.image) setPlayerCheck({ status: 'found', image: d.image });
       else if (d.status === 'not_found') setPlayerCheck({ status: 'not_found' });
+      else if (left > 0 && ['busy', 'unknown'].includes(d.status)) timer = setTimeout(() => attempt(left - 1), 3000);
       else setPlayerCheck({ status: 'skip' });
     });
-    return () => { alive = false; };
+    attempt(2);
+    return () => { alive = false; clearTimeout(timer); };
   }, [confirming, game, gameId]);
 
   // กดชำระ → ตรวจข้อมูล → ป๊อปอัปให้ลูกค้ายืนยันไอดีก่อน
@@ -1667,7 +1671,7 @@ export default function App() {
 
             {playerCheck.status === 'checking' && (
               <div className="bs-alert info" style={{ marginTop: 10, display: 'flex', gap: 8 }} role="status">
-                <Loader2 className="w-5 h-5 bs-spin shrink-0" /> กำลังค้นหาไอดีนี้ในเกม (ไม่เกิน 20 วินาที)...
+                <Loader2 className="w-5 h-5 bs-spin shrink-0" /> กำลังค้นหาไอดีนี้ในเกม (อาจใช้เวลาสักครู่)...
               </div>
             )}
             {playerCheck.status === 'found' && (
