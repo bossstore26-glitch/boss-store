@@ -8,12 +8,39 @@ import { GAME_KEYS } from './_rates.js';
 export const METHOD_KEYS = ['promptpay', 'truemoney'];
 export const METHOD_NAMES = { promptpay: 'PromptPay', truemoney: 'TrueMoney' };
 
+// 24 พ.ย. ร้านสั่ง: ปิดปรับปรุงตามเวลาที่ตั้งไว้ (คอมร้านปิดอยู่ หน้าเว็บอ่านข้อความจากแผงควบคุมไม่ได้ → ฝังไว้ที่นี่)
+// ช่วง from–to ปิดรับเงินทุกช่องทางเลย · เลย to แล้วคอมยังไม่กลับมา ก็ยังโชว์ข้อความนี้ต่ออีก GRACE
+export const MAINTENANCE = [
+  { from: '2026-11-25T05:00:00+07:00', to: '2026-11-25T06:00:00+07:00',
+    message: 'ร้านปิดปรับปรุงชั่วคราว 05:00–06:00 น. เปิดร้านแล้วจัดโปรแถม 50,000 เหรียญ ยังไม่มีการเรียกเก็บเงิน' },
+];
+const MAINT_GRACE_MS = 60 * 60 * 1000;
+
+export function maintenanceNow(now = Date.now(), offline = false) {
+  for (const m of MAINTENANCE) {
+    const from = Date.parse(m.from), to = Date.parse(m.to);
+    if (now >= from && now < to) return m.message;
+    if (offline && now >= to && now < to + MAINT_GRACE_MS) return m.message;
+  }
+  return null;
+}
+
+function closedAll(games, methods) {
+  for (const k of GAME_KEYS) games[k] = false;
+  for (const k of METHOD_KEYS) methods[k] = false;
+}
+
 export async function shopStatus() {
   const games = Object.fromEntries(GAME_KEYS.map((k) => [k, true]));
   const methods = Object.fromEntries(METHOD_KEYS.map((k) => [k, true]));
   const bot = process.env.BOT_URL;
   let promo = null; // โปรแถมเหรียญ (ร้านเปิดในแผงควบคุม) หน้าเว็บโชว์ป้าย
-  if (!bot) return { games, methods, promo, known: false, offline: false }; // ยังไม่ได้ตั้ง BOT_URL ใน Vercel → ไม่บล็อก
+  const maint = maintenanceNow();
+  if (maint) { // ช่วงปิดปรับปรุง: ไม่ถามคอมร้าน ปิดรับเงินทั้งหมด
+    closedAll(games, methods);
+    return { games, methods, promo: null, notice: '', known: false, offline: true, maintenance: maint };
+  }
+  if (!bot) return { games, methods, promo, notice: '', known: false, offline: false }; // ยังไม่ได้ตั้ง BOT_URL ใน Vercel → ไม่บล็อก
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const r = await fetch(`${bot.replace(/\/$/, '')}/shop/status`, {
@@ -34,13 +61,13 @@ export async function shopStatus() {
                                      scope: p.scope === 'new' ? 'new' : 'all' } : null);
       const royal = pick(d?.promo), siam = pick(d?.promo_siam);
       promo = royal || siam ? { royal, siam } : null;
-      return { games, methods, promo, known: true, offline: false };
+      const notice = typeof d?.notice === 'string' ? d.notice.slice(0, 200) : ''; // ป้ายประกาศ (แผงควบคุม)
+      return { games, methods, promo, notice, known: true, offline: false };
     } catch {}
   }
   // ร้านติดต่อไม่ได้ → ปิดทุกอย่าง
-  for (const k of GAME_KEYS) games[k] = false;
-  for (const k of METHOD_KEYS) methods[k] = false;
-  return { games, methods, promo: null, known: false, offline: true };
+  closedAll(games, methods);
+  return { games, methods, promo: null, notice: '', known: false, offline: true, maintenance: maintenanceNow(Date.now(), true) };
 }
 
 export const OFFLINE_MESSAGE = 'ขออภัย ระบบเติมเหรียญปิดชั่วคราว (กำลังแก้ไข) กรุณาลองใหม่ภายหลัง ยังไม่มีการเรียกเก็บเงิน';
@@ -74,7 +101,7 @@ export const BLOCKED_MESSAGE = 'ไอดีนี้ถูกระงับก
 // ตรวจก่อนสร้างรายการจ่ายเงิน คืน null ถ้าผ่าน หรือ { status, body } ถ้าปิดอยู่
 export async function checkOpen(game, gameName, method) {
   const s = await shopStatus();
-  if (s.offline) return { status: 503, body: { error: OFFLINE_MESSAGE, offline: true } };
+  if (s.offline) return { status: 503, body: { error: s.maintenance || OFFLINE_MESSAGE, offline: true } };
   if (!s.methods[method]) return { status: 409, body: { error: methodClosedMessage(method), closedMethod: method } };
   if (!s.games[game]) return { status: 409, body: { error: closedMessage(gameName), closed: game } };
   return null;
