@@ -45,17 +45,100 @@ async function copyToClipboard(text) {
 }
 
 // ธนาคารให้ลูกค้าเลือก (รหัสเดียวกับที่ Slip2Go ส่งมาในสลิป · len = จำนวนหลักเลขบัญชี · อื่นๆ = 10–15)
+// โลโก้ธนาคาร: github.com/omise/banks-logo (MIT) → public/banks/*.svg · สีพื้นวงกลมตาม banks.json ของ repo
 const BANKS = [
-  { code: '004', name: 'กสิกร', len: 10 },
-  { code: '014', name: 'ไทยพาณิชย์', len: 10 },
-  { code: '006', name: 'กรุงไทย', len: 10 },
-  { code: '002', name: 'กรุงเทพ', len: 10 },
-  { code: '025', name: 'กรุงศรี', len: 10 },
-  { code: '011', name: 'ttb', len: 10 },
-  { code: '030', name: 'ออมสิน', len: 12 },
-  { code: '034', name: 'ธ.ก.ส.', len: 12 },
+  { code: '004', name: 'กสิกร', len: 10, logo: 'kbank', color: '#138f2d' },
+  { code: '014', name: 'ไทยพาณิชย์', len: 10, logo: 'scb', color: '#4e2e7f' },
+  { code: '006', name: 'กรุงไทย', len: 10, logo: 'ktb', color: '#1ba5e1' },
+  { code: '002', name: 'กรุงเทพ', len: 10, logo: 'bbl', color: '#1e4598' },
+  { code: '025', name: 'กรุงศรี', len: 10, logo: 'bay', color: '#fec43b' },
+  { code: '011', name: 'ttb', len: 10, logo: 'ttb', color: '#ffffff' },  // 24 พ.ย. ร้านสั่ง: ใช้โลโก้ ttb สี (ฟ้า/ส้ม/น้ำเงิน) บนพื้นขาว
+  { code: '030', name: 'ออมสิน', len: 12, logo: 'gsb', color: '#eb198d' },
+  { code: '034', name: 'ธ.ก.ส.', len: 12, logo: 'baac', color: '#4b9b1d' },
   { code: 'other', name: 'อื่นๆ', len: 0 },
 ];
+
+function BankLogo({ bank, size = 26 }) {
+  const box = { width: size, height: size, borderRadius: '50%', flex: 'none', display: 'inline-flex',
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
+  if (!bank || !bank.logo) {
+    return <span aria-hidden="true" style={{ ...box, background: 'var(--line)', fontSize: size * 0.55 }}>🏦</span>;
+  }
+  return (
+    <span aria-hidden="true" style={{ ...box, background: bank.color }}>
+      <img src={`/banks/${bank.logo}.svg`} alt="" width={size * 0.72} height={size * 0.72} style={{ display: 'block' }} />
+    </span>
+  );
+}
+
+// 24 พ.ย. ร้านสั่ง: ช่องเลือกธนาคารมีโลโก้ (select ปกติใส่รูปไม่ได้ → ทำ dropdown เอง)
+function BankPicker({ value, onPick, invalid, placeholder, otherLabel, onBlur }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); onBlur && onBlur(); } };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
+  }, [open, onBlur]);
+  const sel = BANKS.find((b) => b.code === value);
+  const label = (b) => `${b.code === 'other' ? otherLabel : b.name}${b.len ? ` (${b.len} หลัก)` : ''}`;
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        id="bankCode"
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-invalid={invalid}
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+          padding: sel ? '9px 38px 9px 12px' : '13px 38px 13px 14px', borderRadius: 14, cursor: 'pointer',
+          border: `2px solid ${invalid ? 'var(--red)' : open ? 'var(--ink)' : 'var(--line)'}`,
+          background: invalid ? 'var(--bad-bg)' : 'var(--card2)',
+          color: sel ? 'var(--ink)' : 'var(--muted)', fontSize: 15, fontWeight: 700, outline: 'none',
+          backgroundImage: 'linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%)',
+          backgroundPosition: 'calc(100% - 19px) calc(50% + 1px), calc(100% - 13px) calc(50% + 1px)',
+          backgroundSize: '6px 6px, 6px 6px', backgroundRepeat: 'no-repeat',
+        }}
+      >
+        {sel && <BankLogo bank={sel} />}
+        <span>{sel ? label(sel) : placeholder}</span>
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          aria-labelledby="bankCode"
+          style={{
+            position: 'absolute', zIndex: 20, left: 0, right: 0, top: 'calc(100% + 6px)', margin: 0, padding: 6,
+            listStyle: 'none', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 14,
+            boxShadow: '0 12px 30px rgba(0,0,0,.35)', maxHeight: 340, overflowY: 'auto',
+          }}
+        >
+          {BANKS.map((b) => (
+            <li key={b.code} role="option" aria-selected={b.code === value}>
+              <button
+                type="button"
+                onClick={() => { onPick(b.code); setOpen(false); }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', border: 0,
+                  borderRadius: 10, cursor: 'pointer', textAlign: 'left', fontSize: 15, fontWeight: 700,
+                  color: 'var(--ink)', background: b.code === value ? 'var(--card2)' : 'transparent',
+                }}
+              >
+                <BankLogo bank={b} />
+                <span>{label(b)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 const MEMO_STEP = (<>ก่อนกดโอนเงิน จะมีช่อง <b>"บันทึก/บันทึกช่วยจำ"</b><br />ให้คัดลอกข้อความข้อ 1 วางก่อนโอนเงิน</>);
 
@@ -1401,6 +1484,12 @@ export default function App() {
     setBankHistory(next);
     try { localStorage.setItem('bossstore_banks', JSON.stringify(next.map((x) => `${x.code}|${x.acc}`))); } catch { /* เพิกเฉย */ }
   };
+  // 24 พ.ย. ร้านสั่ง: ปุ่ม × ให้ลูกค้าลบบัญชีที่จำไว้ออกจากเครื่อง
+  const forgetBank = (acc) => {
+    const next = bankHistory.filter((x) => x.acc !== acc);
+    setBankHistory(next);
+    try { localStorage.setItem('bossstore_banks', JSON.stringify(next.map((x) => `${x.code}|${x.acc}`))); } catch { /* เพิกเฉย */ }
+  };
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(loadPending);
   // 20 พ.ย. ร้านสั่ง: ลิงก์กู้ออเดอร์ ?order=รหัส (ร้านส่งให้ลูกค้าตอนขอสลิปยืนยัน 0.10 บาท)
@@ -1720,20 +1809,40 @@ export default function App() {
                     {bankHistory.map((v) => {
                       const on = bankAcc === v.acc && bankCode === v.code;
                       const b = BANKS.find((x) => x.code === v.code);
+                      const shown = `${b && b.code !== 'other' ? `${b.name} ` : ''}${v.acc.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1-$2-$3')}`;
                       return (
-                        <button
+                        <span
                           key={v.acc}
-                          type="button"
-                          onClick={() => { setBankAcc(v.acc); if (v.code) setBankCode(v.code); setBankTouched(true); }}
                           style={{
+                            display: 'inline-flex', alignItems: 'center',
                             border: `1.5px solid ${on ? 'var(--ink)' : 'var(--line)'}`,
                             background: on ? 'var(--card)' : 'var(--card2)',
-                            color: 'var(--ink)', borderRadius: 999, padding: '7px 12px',
-                            fontSize: 12.5, fontWeight: 700, letterSpacing: .4, cursor: 'pointer',
+                            color: 'var(--ink)', borderRadius: 999,
                           }}
                         >
-                          🏦 {b && b.code !== 'other' ? `${b.name} ` : ''}{v.acc.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1-$2-$3')}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => { setBankAcc(v.acc); if (v.code) setBankCode(v.code); setBankTouched(true); }}
+                            style={{
+                              background: 'none', border: 0, color: 'inherit', padding: '5px 4px 5px 6px',
+                              fontSize: 12.5, fontWeight: 700, letterSpacing: .4, cursor: 'pointer',
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                            }}
+                          >
+                            <BankLogo bank={b} size={22} /> {shown}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`ลบบัญชี ${shown} ออกจากประวัติ`}
+                            onClick={() => forgetBank(v.acc)}
+                            style={{
+                              background: 'none', border: 0, color: 'inherit', cursor: 'pointer',
+                              font: '400 16px/1 sans-serif', padding: '5px 10px 6px 5px', opacity: .6,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
                       );
                     })}
                   </div>
@@ -1744,35 +1853,19 @@ export default function App() {
     <label htmlFor="bankCode" style={{ fontSize: 14, fontWeight: 800, display: 'block', marginBottom: 6, color: 'var(--ink)' }}>
       {t('bankPick')} <span style={{ color: 'var(--red)' }}>*</span>
     </label>
-    <select
-      id="bankCode"
+    <BankPicker
       value={bankCode}
-      onChange={(e) => {
-        const c = e.target.value;
+      onPick={(c) => {
         setBankCode(c);
         const b = BANKS.find((x) => x.code === c);
         if (b && b.len) setBankAcc((a) => a.slice(0, b.len));
         setBankTouched(true);
       }}
       onBlur={() => setBankTouched(true)}
-      aria-invalid={bankTouched && !bankCode}
-      style={{
-        width: '100%', padding: '13px 38px 13px 14px', borderRadius: 14, appearance: 'none', WebkitAppearance: 'none',
-        border: `2px solid ${bankTouched && !bankCode ? 'var(--red)' : 'var(--line)'}`,
-        background: bankTouched && !bankCode ? 'var(--bad-bg)' : 'var(--card2)',
-        color: bankCode ? 'var(--ink)' : 'var(--muted)', fontSize: 15, fontWeight: 700, outline: 'none',
-        backgroundImage: 'linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%)',
-        backgroundPosition: 'calc(100% - 19px) calc(50% + 1px), calc(100% - 13px) calc(50% + 1px)',
-        backgroundSize: '6px 6px, 6px 6px', backgroundRepeat: 'no-repeat',
-      }}
-    >
-      <option value="">{t('bankPickPlaceholder')}</option>
-      {BANKS.map((b) => (
-        <option key={b.code} value={b.code}>
-          {b.code === 'other' ? t('bankOther') : b.name}{b.len ? ` (${b.len} หลัก)` : ''}
-        </option>
-      ))}
-    </select>
+      invalid={bankTouched && !bankCode}
+      placeholder={t('bankPickPlaceholder')}
+      otherLabel={t('bankOther')}
+    />
   </div>
 
   <label htmlFor="bankAcc" style={{ fontSize: 14, fontWeight: 800, display: 'block', margin: '12px 0 6px', color: 'var(--ink)' }}>
