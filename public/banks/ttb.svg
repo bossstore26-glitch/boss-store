@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 170" fill="none" stroke-width="34">
+  <!-- ttb (ร้านส่งรูปโลโก้มา 24 พ.ย.) วาดใหม่แบบเรขาคณิต: t ฟ้า · t ส้ม · b น้ำเงินเข้ม -->
+  <path d="M30 15 V105 A45 45 0 0 0 120 105" stroke="#1a5cff"/>
+  <path d="M30 62 H88" stroke="#1a5cff"/>
+  <path d="M120 15 V105 A45 45 0 0 0 210 105" stroke="#f68b1f"/>
+  <path d="M120 62 H178" stroke="#f68b1f"/>
+  <path d="M210 15 V105" stroke="#0f2b5b"/>
+  <circle cx="255" cy="105" r="45" stroke="#0f2b5b"/>
+</svg>
