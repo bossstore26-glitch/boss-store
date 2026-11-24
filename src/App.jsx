@@ -1440,6 +1440,9 @@ export default function App() {
   const [offline, setOffline] = useState(false);
   // โปรแถมเหรียญ (ร้านเปิดในแผงควบคุม) { on, bonus, min_baht, scope } หรือ null
   const [promo, setPromo] = useState(null);
+  // ป้ายประกาศจากแผงควบคุม (24 พ.ย.) · ข้อความปิดปรับปรุงตามเวลาที่ตั้งไว้ใน api/_shop.js
+  const [notice, setNotice] = useState('');
+  const [maintenance, setMaintenance] = useState(null);
   // โหมดมืด/สว่าง (ร้านสั่ง 12 พ.ย.: เริ่มต้นโหมดมืด · จำค่าที่ลูกค้าเลือกไว้ในเครื่อง)
   const [theme, setTheme] = useState(() => {
     try {
@@ -1464,6 +1467,8 @@ export default function App() {
         if (d.methods) setOpenMethods((prev) => ({ ...prev, ...d.methods }));
         setOffline(!!d.offline);
         setPromo(d.promo && (d.promo.royal || d.promo.siam) ? d.promo : null); // { royal, siam } เฉพาะเกมที่เปิดโปร
+        setNotice(typeof d.notice === 'string' ? d.notice : '');
+        setMaintenance(d.maintenance || null);
       } catch {}
     };
     load();
@@ -1865,6 +1870,14 @@ export default function App() {
           })}
         </div>
 
+        {/* ป้ายประกาศ (เปิดจากแผงควบคุม) / ข้อความปิดปรับปรุง */}
+        {(maintenance || (notice && !offline)) && (
+          <div className="bs-promo" role="note">
+            <span className="ic" aria-hidden="true">{maintenance ? '🛠️' : '📢'}</span>
+            <div><b>{maintenance || notice.replace(/^📢\s*/, '')}</b></div>
+          </div>
+        )}
+
         {/* โปรแถม แยกต่อเกม (ร้านสั่ง 13 พ.ย.) — ขึ้นเฉพาะเกมที่ร้านเปิดโปร */}
         {(() => {
           const p = promo && promo[game];
@@ -1979,7 +1992,7 @@ export default function App() {
 
         {offline ? (
           <div className="bs-alert warn" style={{ textAlign: 'center' }}>
-            ขออภัย ระบบเติมเหรียญปิดชั่วคราว (กำลังแก้ไข) กรุณาลองใหม่ภายหลัง ยังไม่มีการเรียกเก็บเงิน
+            {maintenance || 'ขออภัย ระบบเติมเหรียญปิดชั่วคราว (กำลังแก้ไข) กรุณาลองใหม่ภายหลัง ยังไม่มีการเรียกเก็บเงิน'}
           </div>
         ) : !gameOpen ? (
           <div className="bs-alert warn" style={{ textAlign: 'center' }}>ขออภัย ตอนนี้ปิดรับออเดอร์ทุกเกมชั่วคราว</div>
