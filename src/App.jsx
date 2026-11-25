@@ -6,6 +6,32 @@ import { GAMES, GAME_KEYS, MAX_BAHT, chipsFor, rateNote, formatChips, minBaht, g
 import { t, LangSwitch, currentLang } from './i18n.jsx';
 
 const POLL_MS = 3000;
+
+// 26 พ.ย.: ngrok ใช้หมดโควตา (เรียกเข้าคอมร้าน ~13,000 ครั้ง/วัน ครึ่งหนึ่งคือหน้ารอจ่ายถามสถานะทุก 4–5 วิ)
+// → ถามถี่แค่ช่วงแรก แล้วค่อยห่างขึ้น · แท็บที่ลูกค้าไม่ได้ดูอยู่ถามห่าง · กลับมาดูแท็บแล้วถามทันที
+function statusPollDelay(startedAt) {
+  const age = Date.now() - startedAt;
+  const base = age < 3 * 60000 ? 8000 : age < 30 * 60000 ? 15000 : 60000;
+  return typeof document !== 'undefined' && document.hidden ? Math.max(base, 60000) : base;
+}
+
+function useStatusPoll(tick, deps) {
+  useEffect(() => {
+    let stopped = false;
+    let timer;
+    const started = Date.now();
+    const run = async () => {
+      clearTimeout(timer);
+      const done = await tick(() => stopped);
+      if (!stopped && !done) timer = setTimeout(run, statusPollDelay(started));
+    };
+    const onVisible = () => { if (!document.hidden && !stopped) run(); };
+    document.addEventListener('visibilitychange', onVisible);
+    timer = setTimeout(run, 1500);
+    return () => { stopped = true; clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
 const STORAGE_KEY = 'bossstore_pending_qr';
 
 // ข้อความกลาง QR (QR ใช้ระดับแก้ผิด H ทนการบังได้ราว 30%)
@@ -998,21 +1024,18 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
   }, [pending.qrData, pending.game, pending.gameId, qrExpired]);
 
   // อัปโหลดแล้วอยู่ระหว่างร้านตรวจ (หรือกลับมาเปิดหน้าใหม่) → ถามสถานะจนส่งเหรียญ
-  useEffect(() => {
-    let stopped = false;
-    let timer;
-    const tick = async () => {
+  useStatusPoll(async (isStopped) => {
       try {
         const r = await fetch(`/api/truemoney-status?code=${encodeURIComponent(pending.id)}`);
         const d = await r.json();
-        if (stopped) return;
+        if (isStopped()) return true;
         // 19 พ.ย. ร้านสั่ง: ร้านกดไม่ส่ง/โอนเงินคืนแล้ว → แจ้งแล้วกลับหน้าแรก
-        if (d.status === 'cancelled') { alert(d.message || 'รายการนี้ถูกยกเลิก'); onDone(); return; }
+        if (d.status === 'cancelled') { alert(d.message || 'รายการนี้ถูกยกเลิก'); onDone(); return true; }
         if (d.status === 'delivered') {
           setBonus(Number(d.bonus) || 0);
           setStatus('delivered');
           savePending(null);
-          return;
+          return true;
         }
         if (d.status === 'paid') setStatus('paid'); // ถามต่อจนบอทส่งเหรียญเสร็จ
         if (d.status === 'review') setStatus((s) => (s === 'checking' ? s : 'review'));
@@ -1027,10 +1050,7 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
           if (d.cooldown) startCooldown(d.cooldown);
         }
       } catch {}
-      if (!stopped) timer = setTimeout(tick, 4000);
-    };
-    timer = setTimeout(tick, 1000);
-    return () => { stopped = true; clearTimeout(timer); };
+      return false;
   }, [pending.id]);
 
   const upload = async (file) => {
@@ -1297,20 +1317,17 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
   }, [pending.url, pending.game, pending.gameId]);
 
   // ถามบอทว่าเงินเข้าหรือยัง (บอทยืนยันกับ TrueMoney แล้วถึงตอบว่าจ่ายแล้ว)
-  useEffect(() => {
-    let stopped = false;
-    let timer;
-    const tick = async () => {
+  useStatusPoll(async (isStopped) => {
       try {
         const r = await fetch(`/api/truemoney-status?code=${encodeURIComponent(pending.id)}`);
         const d = await r.json();
-        if (stopped) return;
-        if (d.status === 'cancelled') { alert(d.message || 'รายการนี้ถูกยกเลิก'); onDone(); return; }
+        if (isStopped()) return true;
+        if (d.status === 'cancelled') { alert(d.message || 'รายการนี้ถูกยกเลิก'); onDone(); return true; }
         if (d.status === 'delivered') {
           setBonus(Number(d.bonus) || 0);
           setStatus('delivered');
           savePending(null);
-          return;
+          return true;
         }
         if (d.status === 'paid') setStatus('paid'); // ถามต่อจนบอทส่งเหรียญเสร็จ
         else if (d.status === 'review') { // จ่ายแล้ว รอยืนยัน → ถามต่อจนส่งจริง
@@ -1318,10 +1335,7 @@ function TrueMoneyCard({ pending, onDone, onCancel }) {
           setOtpInfo(d.otp ? { phone: d.phone } : null);
         }
       } catch {}
-      if (!stopped) timer = setTimeout(tick, 5000);
-    };
-    timer = setTimeout(tick, 5000);
-    return () => { stopped = true; clearTimeout(timer); };
+      return false;
   }, [pending.id]);
 
   const paid = status === 'paid' || status === 'delivered';
