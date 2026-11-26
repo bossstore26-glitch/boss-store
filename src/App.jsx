@@ -809,7 +809,7 @@ function VerifyBox({ pending, verify, onState }) {
         <li><i>1</i><span style={{ flex: 1, minWidth: 0 }}>คัดลอกข้อความนี้
           <SlipNote game={pending.game} gameId={pending.gameId} onCopied={() => scrollStep(verifyStep2Ref)} /></span></li>
         <li ref={verifyStep2Ref}><i>2</i><span>สแกน QR โอน <b>{Number(verify.amount).toFixed(2)} บาท</b><br />จาก<b>บัญชีเดียวกับที่จ่ายครั้งแรก</b></span></li>
-        <li><i>3</i><span style={{ flex: 1, minWidth: 0 }}>{MEMO_STEP}<div style={{ width: '100%', marginTop: 6 }}><MemoExample fit amount={pending.amount} selectedGame={pending.game} playerId={pending.gameId} /></div></span></li>
+        <li><i>3</i><span style={{ flex: 1, minWidth: 0 }}>{MEMO_STEP}<div style={{ width: '100%', marginTop: 6 }}><MemoExample fit amount={verify.amount} selectedGame={pending.game} playerId={pending.gameId} /></div></span></li>
         <li><i>4</i><span>อัปรูปสลิปจากแอปธนาคาร (ห้ามถ่ายจากจอ)</span></li>
       </ol>
       <div className="bs-qr" style={{ marginTop: 10 }}>
