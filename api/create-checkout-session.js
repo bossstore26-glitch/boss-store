@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { MIN_BAHT, MAX_BAHT, chipsFor } from './_rates.js';
 
 // (แบบเก่า หน้าเว็บไม่ได้ใช้แล้ว เก็บไว้สำรอง) เรทราคาอยู่ใน api/_rates.js
-const SITE_URL = process.env.SITE_URL || 'https://boss-store-nine.vercel.app';
+const SITE_URL = process.env.SITE_URL || 'https://www.bossstore.net';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
