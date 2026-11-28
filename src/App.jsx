@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ShoppingBag, CreditCard, ShieldCheck, ArrowRight, CheckCircle2, Loader2, ChevronDown } from 'lucide-react';
 import QRCode from 'qrcode';
 // ตารางเรทเดียวกับ server (server เป็นตัวตัดสินจริง หน้าเว็บใช้แสดงผล)
@@ -72,7 +72,7 @@ async function copyToClipboard(text) {
 
 // ธนาคารให้ลูกค้าเลือก (รหัสเดียวกับที่ Slip2Go ส่งมาในสลิป · len = จำนวนหลักเลขบัญชี · อื่นๆ = 10–15)
 // โลโก้ธนาคาร: github.com/omise/banks-logo (MIT) → public/banks/*.svg · สีพื้นวงกลมตาม banks.json ของ repo
-const BANKS = [
+export const BANKS = [
   { code: '004', name: 'กสิกร', len: 10, logo: 'kbank', color: '#138f2d' },
   { code: '014', name: 'ไทยพาณิชย์', len: 10, logo: 'scb', color: '#4e2e7f' },
   { code: '006', name: 'กรุงไทย', len: 10, logo: 'ktb', color: '#1ba5e1' },
@@ -98,7 +98,7 @@ function BankLogo({ bank, size = 26 }) {
 }
 
 // 24 พ.ย. ร้านสั่ง: ช่องเลือกธนาคารมีโลโก้ (select ปกติใส่รูปไม่ได้ → ทำ dropdown เอง)
-function BankPicker({ value, onPick, invalid, placeholder, otherLabel, onBlur }) {
+export function BankPicker({ value, onPick, invalid, placeholder, otherLabel, onBlur }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -505,7 +505,7 @@ function PaymentCard({ pending, onDone, onCancel }) {
 
 // ย่อภาพสลิปก่อนส่ง (ยาวสุด 1600px JPEG) ให้อัปโหลดเร็วและไม่เกินขนาดที่ server รับ
 // QR บนสลิปยังอ่านได้ชัด (สลิปจากแอปธนาคารปกติสูงไม่เกิน ~2000px)
-async function slipToDataUrl(file) {
+export async function slipToDataUrl(file) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((resolve, reject) => {
@@ -1446,6 +1446,429 @@ const METHODS = [
   { key: 'truemoney', label: 'TrueMoney', sub: 'โอนผ่านแอปทรูมันนี่' },
 ];
 
+// ---- 28 พ.ย. ร้านสั่ง: หน้า "ขายเหรียญให้ร้าน" (ฝากขาย) เปิดที่ /?sell · ปิดอยู่จนร้านเปิด web_sell ที่คอมร้าน ----
+// แบบเดียวกับร้านอื่นที่ร้านส่งมาดู: ปุ่มแพ็ก · กล่องไอดีร้าน+คัดลอก · กติกาเกม · ราคาตัวใหญ่ · โอนก่อนแล้วกดส่ง
+// ครั้งแรก: ชื่อ/เบอร์/เลขบัตร/บัญชีรับเงิน(ล็อก)/ไอดีเพิ่ม · รูปเดียว "บัตรตัวจริง + กระดาษเขียนมือ" (มีปุ่มดูตัวอย่าง)
+//          อายุ 18+ · ยินยอม PDPA แยก · ยอมรับเงื่อนไขฝากขาย · หน้าทวนข้อมูลก่อนยืนยัน
+const SELL_NOTE = 'ใช้สำหรับฝากขายเหรียญกับ BOSS STORE เท่านั้น';
+
+function thaiIdOk(v) {
+  const d = String(v || '').replace(/\D/g, '');
+  if (d.length !== 13) return false;
+  let s = 0;
+  for (let i = 0; i < 12; i++) s += Number(d[i]) * (13 - i);
+  return (11 - (s % 11)) % 10 === Number(d[12]);
+}
+
+function sellCoins(text) {
+  const m = String(text || '').trim().match(/^([\d,]+(?:\.\d+)?)\s*([mMkK])?$/);
+  if (!m) return 0;
+  let n = Number(m[1].replace(/,/g, ''));
+  if (/m/i.test(m[2] || '')) n *= 1_000_000; else if (/k/i.test(m[2] || '')) n *= 1_000;
+  return n > 0 ? Math.round(n) : 0;
+}
+
+const fmtM = (coins) => `${(coins / 1_000_000).toLocaleString()}M`;
+const fmtBaht = (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+// ภาพตัวอย่าง: บัตรประชาชนตัวจริง + กระดาษขาวเขียนมือ ในรูปเดียว (วาดเป็น SVG ไม่มีข้อมูลคนจริง)
+function SellExample() {
+  return (
+    <svg viewBox="0 0 360 250" width="100%" role="img" aria-label="ตัวอย่างรูป: บัตรประชาชนวางคู่กระดาษเขียนมือ" style={{ display: 'block', borderRadius: 14 }}>
+      <rect width="360" height="250" fill="#8a6e52" />
+      <rect x="0" y="0" width="360" height="250" fill="url(#wood)" opacity=".25" />
+      <defs><pattern id="wood" width="40" height="8" patternUnits="userSpaceOnUse"><path d="M0 4 Q10 0 20 4 T40 4" stroke="#5e4834" fill="none" /></pattern></defs>
+      <g transform="rotate(-4 105 110)">
+        <rect x="18" y="40" width="185" height="118" rx="9" fill="#e4eef8" stroke="#9fb4cc" />
+        <rect x="18" y="40" width="185" height="22" rx="9" fill="#2d5b94" />
+        <text x="30" y="56" fontSize="10" fill="#fff" fontWeight="700">บัตรประจำตัวประชาชน</text>
+        <rect x="140" y="72" width="50" height="62" rx="4" fill="#c4d3e4" />
+        <circle cx="165" cy="94" r="12" fill="#9fb2c8" /><rect x="149" y="110" width="32" height="20" rx="8" fill="#9fb2c8" />
+        <rect x="30" y="76" width="95" height="6" rx="3" fill="#7d8fa6" />
+        <rect x="30" y="92" width="80" height="6" rx="3" fill="#a3b2c4" />
+        <rect x="30" y="106" width="88" height="6" rx="3" fill="#a3b2c4" />
+        <rect x="30" y="126" width="70" height="6" rx="3" fill="#a3b2c4" />
+        <text x="30" y="150" fontSize="8" fill="#55657a">บัตรตัวจริง เห็นครบทั้งใบ</text>
+      </g>
+      <g transform="rotate(3 270 140)">
+        <rect x="196" y="58" width="150" height="170" fill="#fffdf6" stroke="#d8d0bf" />
+        <g fontFamily="'Itim','Mali','Comic Sans MS',cursive" fill="#1d3fa0" fontSize="12.5">
+          <text x="206" y="88">ใช้สำหรับฝากขาย</text>
+          <text x="206" y="108">เหรียญกับ BOSS STORE</text>
+          <text x="206" y="128">เท่านั้น</text>
+          <text x="206" y="160">ลงชื่อ สมชาย ใจดี</text>
+          <text x="206" y="186">ลงวันที่ 2 ม.ค. 2570</text>
+        </g>
+        <path d="M262 198 q10 -14 22 0 t22 -2" stroke="#1d3fa0" fill="none" strokeWidth="1.6" />
+      </g>
+      <rect x="8" y="8" width="150" height="20" rx="10" fill="rgba(0,0,0,.55)" />
+      <text x="18" y="22" fontSize="10.5" fill="#fff" fontWeight="700">✓ ตัวอย่างรูปที่ถูกต้อง</text>
+    </svg>
+  );
+}
+
+// 28 พ.ย.: สถานะคำขอฝากขาย (จำในเครื่อง · รหัสลับใช้ดูสลิปได้เฉพาะเครื่องนี้)
+const SELL_REQS_KEY = 'bossstore_sell_reqs';
+function loadSellReqs() {
+  try {
+    const a = JSON.parse(localStorage.getItem(SELL_REQS_KEY) || '[]');
+    return Array.isArray(a) ? a.filter((r) => r && r.code && r.token && Date.now() - (r.at || 0) < 14 * 86400000) : [];
+  } catch { return []; }
+}
+function saveSellReq(r) {
+  try { localStorage.setItem(SELL_REQS_KEY, JSON.stringify([r, ...loadSellReqs().filter((x) => x.code !== r.code)].slice(0, 5))); } catch { /* ข้ามได้ */ }
+}
+
+function SellStatus({ req }) {
+  const [st, setSt] = useState(null);
+  useEffect(() => {
+    let alive = true, timer;
+    const tick = async () => {
+      try {
+        const d = await (await fetch('/api/sell', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'status', code: req.code, token: req.token }) })).json();
+        if (!alive) return;
+        setSt(d);
+        if (d.status === 'paid' || d.status === 'rejected' || d.status === 'unknown') return; // จบแล้ว ไม่ถามต่อ
+      } catch { /* ลองใหม่รอบหน้า */ }
+      if (alive) timer = setTimeout(tick, document.hidden ? 60000 : 15000);
+    };
+    tick();
+    const onVis = () => { if (!document.hidden) { clearTimeout(timer); tick(); } };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { alive = false; clearTimeout(timer); document.removeEventListener('visibilitychange', onVis); };
+  }, [req.code, req.token]);
+  const head = <b>#{req.code} · {req.game === 'siam' ? 'Siam' : 'Royal'} {fmtM(req.coins || 0)}</b>;
+  if (!st || st.status === 'pending') {
+    return (<div className="bs-alert warn" style={{ marginTop: 10 }}>{head}<br />⏳ รอร้านตรวจเหรียญและโอนเงินทดรอง · หน้านี้อัปเดตเอง</div>);
+  }
+  if (st.status === 'rejected') {
+    return (<div className="bs-alert bad" style={{ marginTop: 10 }}>{head}<br />❌ ไม่ผ่านการตรวจ กรุณาทักแชทเพจ BOSS STORE</div>);
+  }
+  if (st.status === 'paid') {
+    return (
+      <div className="bs-alert good" style={{ marginTop: 10 }}>{head}<br />
+        <b>✅ โอนเงินแล้ว{st.amount != null ? ` ${Number(st.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท` : ''}</b>
+        {st.paid_at ? <> · {st.paid_at}</> : null}{st.ref ? <><br /><small>เลขอ้างอิง {st.ref}</small></> : null}
+        {st.coins_image && (<>
+          <small style={{ display: 'block', marginTop: 8 }}>🎮 ร้านรับเหรียญในเกมแล้ว</small>
+          <img src={st.coins_image} alt={`รายการรับเหรียญ #${req.code}`} style={{ display: 'block', width: '100%', marginTop: 4, borderRadius: 8 }} />
+        </>)}
+        {st.slip && <><small style={{ display: 'block', marginTop: 8 }}>💸 สลิปโอนเงิน</small>
+          <img src={st.slip} alt={`สลิปโอนเงิน #${req.code}`} style={{ display: 'block', width: '100%', marginTop: 4, borderRadius: 10 }} /></>}
+      </div>
+    );
+  }
+  return null;
+}
+
+export function SellPage() {
+  const [theme] = useState(() => { try { return localStorage.getItem('bossstore_theme2') === 'light' ? 'light' : 'dark'; } catch { return 'dark'; } });
+  useEffect(() => { document.documentElement.classList.toggle('theme-dark', theme === 'dark'); }, [theme]);
+  const [game, setGame] = useState('royal');
+  const [gameId, setGameId] = useState('');
+  const [coins, setCoins] = useState(0);
+  const [custom, setCustom] = useState('');
+  const [info, setInfo] = useState(null);
+  const [checking, setChecking] = useState(false);
+  const [kyc, setKyc] = useState({ name: '', phone: '', nid: '', bank: '', account: '', image: '', extra: [], adult: false, consent: false, accept: false });
+  const [reviewing, setReviewing] = useState(false);
+  const [showExample, setShowExample] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [done, setDone] = useState(null);
+  const recentReqs = useMemo(() => loadSellReqs(), [done]);
+  const fileRef = useRef(null);
+
+  const idOk = /^\d{4,12}$/.test(gameId);
+  useEffect(() => {
+    let alive = true;
+    const t = setTimeout(async () => {
+      setChecking(true);
+      try {
+        const d = await (await fetch(`/api/sell?game=${game}&id=${idOk ? gameId : ''}`)).json();
+        if (alive) setInfo(d);
+      } catch { if (alive) setInfo({ open: false }); }
+      if (alive) setChecking(false);
+    }, idOk ? 600 : 0);
+    return () => { alive = false; clearTimeout(t); };
+  }, [game, gameId, idOk]);
+  useEffect(() => { setCoins(0); setCustom(''); setReviewing(false); }, [game]);
+
+  const unit = game === 'siam' ? 100_000_000 : 1_000_000;
+  const est = info?.rate && coins ? (coins / unit) * Number(info.rate) : null;
+  const needKyc = !!(info?.open && idOk && !info.registered);
+  const bank = BANKS.find((b) => b.code === kyc.bank);
+  const acct = kyc.account.replace(/\D/g, '');
+  const phone = kyc.phone.replace(/\D/g, '');
+  const extraIds = kyc.extra.map((x) => x.replace(/\D/g, '')).filter((x) => /^\d{4,12}$/.test(x));
+  const kycErrors = needKyc ? [
+    kyc.name.trim().split(/\s+/).length < 2 && 'ชื่อ-นามสกุล',
+    !/^0\d{9}$/.test(phone) && 'เบอร์โทร 10 หลัก',
+    !thaiIdOk(kyc.nid) && 'เลขบัตรประชาชน',
+    !kyc.bank && 'ธนาคาร',
+    !(acct.length >= (bank?.len || 10) && acct.length <= 15) && 'เลขบัญชี',
+    !kyc.image && 'รูปบัตร + ลายมือ',
+    !kyc.adult && 'ยืนยันอายุ 18+',
+    !kyc.consent && 'ติ๊กยินยอม PDPA',
+    !kyc.accept && 'ติ๊กยอมรับเงื่อนไข',
+  ].filter(Boolean) : [];
+  const minOk = coins >= (info?.min_coins || unit);
+  // 28 พ.ย. ร้านสั่ง: ค้นไอดีในเกมเหมือนฝั่งซื้อ (จอรับเหรียญ) · ไม่พบ = ห้ามไปต่อ · ค้นไม่ได้ชั่วคราว = ไปต่อได้
+  const [look, setLook] = useState({ key: '', status: '', image: '' });
+  useEffect(() => {
+    if (!idOk || !info?.open) return undefined;
+    const key = `${game}:${gameId}`;
+    let alive = true;
+    const t = setTimeout(async () => {
+      setLook({ key, status: 'checking', image: '' });
+      try {
+        const d = await (await fetch(`/api/check-id?game=${game}&id=${encodeURIComponent(gameId)}`)).json();
+        if (alive) setLook({ key, status: d.status || 'unknown', image: d.image || '', vip: d.vip, vipMin: d.vip_min });
+      } catch { if (alive) setLook({ key, status: 'unknown', image: '' }); }
+    }, 900);
+    return () => { alive = false; clearTimeout(t); };
+  }, [game, gameId, idOk, info?.open]);
+  const lookNow = look.key === `${game}:${gameId}` ? look : { status: '', image: '' };
+  const idNotFound = ['not_found', 'low_vip'].includes(lookNow.status);  // low_vip: Royal ต้อง VIP5 ขึ้นไป (28 พ.ย.)
+  const ready = info?.open && idOk && minOk && !kycErrors.length && !busy && !idNotFound && lookNow.status !== 'checking';
+
+  const pickImage = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try { const img = await slipToDataUrl(f); setKyc((k) => ({ ...k, image: img })); } catch { setErr('อ่านรูปไม่ได้ กรุณาเลือกรูปใหม่'); }
+  };
+  const copyId = async () => {
+    await copyToClipboard(info?.receive_id || '');
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  };
+  const submit = async () => {
+    setErr(''); setBusy(true);
+    try {
+      const body = { game, game_id: gameId, coins: String(coins) };
+      if (needKyc) {
+        body.kyc = { name: kyc.name.trim(), phone, national_id: kyc.nid, bank: kyc.bank, account: acct, image: kyc.image,
+          extra_ids: extraIds, adult: kyc.adult, consent: kyc.consent, accept: info.terms_version };
+      }
+      const d = await (await fetch('/api/sell', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
+      if (d.status === 'ok') {
+        if (d.token) saveSellReq({ code: d.code, token: d.token, game, coins, at: Date.now() });
+        setDone(d);
+      }
+      else if (d.status === 'need_kyc') { setInfo((i) => ({ ...i, registered: false })); setReviewing(false); }
+      else setErr(d.message || 'ส่งไม่สำเร็จ กรุณาลองใหม่');
+    } catch { setErr('เชื่อมต่อร้านไม่ได้ กรุณาลองใหม่'); }
+    setBusy(false);
+  };
+
+  const field = { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 };
+  const box = { borderRadius: 16, padding: '14px 16px', marginTop: 14 };
+  const shopIdBox = info?.receive_id ? (
+    <div style={{ ...box, border: '2px solid var(--bad)', background: 'var(--bad-bg)' }}>
+      <b style={{ font: '700 15px/1.3 Prompt,sans-serif', color: 'var(--bad)' }}>🚨 โอนเหรียญ {coins ? fmtM(coins) : ''} เข้าไอดีร้านนี้</b>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 8 }}>
+        <div><small style={{ color: 'var(--muted)' }}>ไอดี {game === 'siam' ? 'Siam' : 'Royal'} ของร้าน</small>
+          <div style={{ font: '800 28px/1.1 Prompt,sans-serif', letterSpacing: 1, color: 'var(--ink)' }}>{info.receive_id}</div></div>
+        <button type="button" className="bs-btn primary" style={{ width: 'auto', padding: '10px 14px', fontSize: 14 }} onClick={copyId}>
+          {copied ? 'คัดลอกแล้ว ✓' : '📋 คัดลอก ID'}</button>
+      </div>
+      <small style={{ display: 'block', marginTop: 8, color: 'var(--ink)' }}>โอนเหรียญในเกมให้เสร็จก่อน แล้วค่อยกดปุ่ม "ส่งคำขอฝากขาย" ด้านล่าง</small>
+    </div>
+  ) : null;
+
+  if (showExample) {
+    return (
+      <div className="bs-page"><style>{STYLE_CSS}</style><div className="bs-wrap"><div className="bs-card">
+        <h1 className="bs-h2">📖 ตัวอย่างรูปที่ต้องส่ง</h1>
+        <div style={{ marginTop: 14 }}><SellExample /></div>
+        <div className="bs-alert info" style={{ marginTop: 14 }}>
+          <b>ถ่ายรูปเดียว ให้เห็นครบ 2 อย่าง</b><br />
+          1) บัตรประชาชน<b>ตัวจริง</b> วางให้เห็นทั้งใบ อ่านชื่อและเลขบัตรได้<br />
+          2) กระดาษขาว <b>เขียนด้วยลายมือ</b> ว่า "{SELL_NOTE}" แล้ว<b>ลงชื่อจริง + วันที่ที่ถ่าย</b><br />
+          ชัด ไม่มืด ไม่เบลอ ไม่มีนิ้วบังบัตร
+        </div>
+        <div className="bs-alert bad" style={{ marginTop: 10 }}>ไม่เขียนด้วยลายมือ / ใช้รูปบัตรที่ถ่ายไว้เก่า / รูปถ่ายจากจอ = <b>ไม่อนุมัติทุกกรณี</b></div>
+        <button type="button" className="bs-btn primary" style={{ marginTop: 16 }} onClick={() => setShowExample(false)}>เข้าใจแล้ว กลับไปกรอก</button>
+      </div></div></div>
+    );
+  }
+
+  return (
+    <div className="bs-page">
+      <style>{STYLE_CSS}</style>
+      <div className="bs-wrap">
+        <div className="bs-head"><div className="bs-logo"><i>B</i>BOSS STORE</div>
+          <a href="/" className="bs-pill" style={{ textDecoration: 'none' }}>← กลับหน้าเติมเหรียญ</a></div>
+        <div className="bs-card">
+          <h1 className="bs-h2">💰 ฝากขายเหรียญกับร้าน</h1>
+          <p className="bs-sub">โอนเหรียญเข้าไอดีร้านเพื่อฝากขาย · ร้านโอนเงินทดรอง (หักค่าบริการแล้ว) เข้าบัญชีที่ลงทะเบียนไว้</p>
+
+          {!done && !reviewing && recentReqs.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div className="bs-label">คำขอฝากขายล่าสุดของคุณ</div>
+              {recentReqs.slice(0, 3).map((r) => <SellStatus key={r.code} req={r} />)}
+            </div>)}
+          {info && !info.open && !checking && (
+            <div className="bs-alert info" style={{ marginTop: 14 }}>ตอนนี้ร้านยังไม่เปิดรับฝากขายเหรียญผ่านเว็บ กรุณาทักแชทเพจ BOSS STORE</div>)}
+
+          {done ? (
+            <div style={{ marginTop: 16 }}>
+              <div className="bs-alert good"><b>✅ ส่งคำขอแล้ว · รหัส #{done.code}</b><br />
+                ร้านตรวจเหรียญเข้าแล้วจะโอนเงินทดรอง{done.est_thb ? <> ประมาณ <b>{fmtBaht(done.est_thb)} บาท</b></> : ''} เข้าบัญชี {done.bank_hint || 'ที่ลงทะเบียนไว้'}
+                {(needKyc || info?.pending) && done.approved === false ? <><br />ผู้ฝากขายใหม่: ร้านตรวจบัตรและลายมือก่อนโอนเงินครั้งแรก</> : null}</div>
+              {done.token && <SellStatus req={{ code: done.code, token: done.token, game, coins }} />}
+              <button type="button" className="bs-btn ghost" style={{ marginTop: 12 }} onClick={() => { setDone(null); setCoins(0); setCustom(''); setReviewing(false); }}>ฝากขายเพิ่ม</button>
+            </div>
+          ) : reviewing ? (
+            <div style={{ marginTop: 14 }}>
+              <div className="bs-alert warn"><b>🔎 อ่านทวนก่อนยืนยัน</b> ตรวจให้ตรงกับความจริง</div>
+              <div style={{ ...box, background: 'var(--card2)', border: '1px solid var(--line)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>ชื่อ-นามสกุล</span><b>{kyc.name}</b></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}><span>เบอร์โทร</span><b>{phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}</b></div>
+                <div style={{ ...box, background: 'var(--card)', border: '1.5px solid var(--gold)' }}>
+                  <small>ธนาคาร · เลขบัญชี (ล็อกหลังยืนยัน แก้ได้ผ่านแอดมินเท่านั้น)</small>
+                  <div style={{ fontWeight: 700 }}>{bank?.name}</div>
+                  <div style={{ font: '800 26px/1.2 Prompt,sans-serif', letterSpacing: 1 }}>{acct.replace(/(\d{3})(\d)(\d{5})(\d+)/, '$1 $2 $3 $4')}</div>
+                  <small style={{ color: 'var(--bad)' }}>ร้านโอนเข้าบัญชีนี้เท่านั้น · ชื่อบัญชีต้องตรงกับบัตรประชาชน</small>
+                </div>
+                <div style={{ ...box, background: 'var(--card)', border: '1.5px solid var(--gold)' }}>
+                  <small>ไอดีเกมที่ใช้ฝากขาย</small>
+                  <div style={{ font: '800 24px/1.2 Prompt,sans-serif' }}>{[gameId, ...extraIds].join(' · ')}</div>
+                </div>
+              </div>
+              {shopIdBox}
+              {err && <div className="bs-alert bad" style={{ marginTop: 12 }}>{err}</div>}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginTop: 16 }}>
+                <button type="button" className="bs-btn ghost" onClick={() => setReviewing(false)}>✏️ แก้ไข</button>
+                <button type="button" className="bs-btn primary" disabled={busy} onClick={submit}>{busy ? 'กำลังส่ง...' : '✅ ถูกต้อง · ส่งคำขอฝากขาย'}</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={field}>
+                <div className="bs-label">เกม</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {['royal', 'siam'].map((g) => (
+                    <button key={g} type="button" className="bs-opt" role="radio" aria-checked={game === g} onClick={() => setGame(g)}>
+                      <b>{g === 'siam' ? 'Siam' : 'Royal Game'}</b></button>))}
+                </div>
+              </div>
+              <label style={field}><span className="bs-label">ไอดีเกมที่จะโอนเหรียญมาฝากขาย</span>
+                <input className="bs-input" inputMode="numeric" maxLength={12} value={gameId} placeholder="เช่น 12345678"
+                  onChange={(e) => setGameId(e.target.value.replace(/\D/g, ''))} /></label>
+              {idOk && info?.open && lookNow.status === 'checking' && (
+                <div className="bs-alert info" style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Loader2 className="w-5 h-5 bs-spin shrink-0" /> กำลังค้นหาไอดีนี้ในเกม...</div>)}
+              {idOk && info?.open && lookNow.status === 'found' && (
+                <div className="bs-alert good" style={{ marginTop: 8 }}>
+                  <b>✓ พบไอดีนี้ในเกม</b> · ตรวจว่าเป็นตัวละครของคุณ
+                  {lookNow.image && <img src={lookNow.image} alt="ตัวละครของไอดีนี้" style={{ display: 'block', width: '100%', marginTop: 8, borderRadius: 10 }} />}
+                </div>)}
+              {idOk && info?.open && lookNow.status === 'not_found' && (
+                <div className="bs-alert bad" style={{ marginTop: 8 }}><b>❌ ไม่พบไอดีนี้ในเกม</b> กรุณาตรวจไอดีอีกครั้ง (ดูในหน้าโปรไฟล์เกม)</div>)}
+              {idOk && info?.open && lookNow.status === 'low_vip' && (
+                <div className="bs-alert bad" style={{ marginTop: 8 }}>
+                  <b>❌ ไอดีนี้ VIP {lookNow.vip ?? '-'} · เกม Royal ต้อง VIP {lookNow.vipMin || 5} ขึ้นไปจึงจะฝากขายเหรียญได้</b>
+                  {lookNow.image && <img src={lookNow.image} alt="ตัวละครของไอดีนี้" style={{ display: 'block', width: '100%', marginTop: 8, borderRadius: 10 }} />}
+                </div>)}
+              {idOk && info?.open && info.registered && (
+                <div className={`bs-alert ${info.pending ? 'warn' : 'good'}`} style={{ marginTop: 8 }}>
+                  {info.pending ? '⏳ ลงทะเบียนแล้ว · รอร้านตรวจบัตร (ฝากขายได้ ร้านโอนเงินหลังตรวจ)' : '✓ ลงทะเบียนแล้ว'} · ร้านโอนเข้าบัญชี {info.bank_hint || 'ที่ลงทะเบียนไว้'}</div>)}
+
+              {info?.rules?.length > 0 && (
+                <div className="bs-alert warn" style={{ marginTop: 14 }}><b>⚠️ กติกาเกมก่อนฝากขาย</b>
+                  {info.rules.map((r, i) => <div key={i}>• {r}</div>)}</div>)}
+
+              <div style={field}>
+                <div className="bs-label">จำนวนเหรียญที่ต้องการฝากขาย</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+                  {(info?.packages || (game === 'siam' ? [100, 500, 1000, 2000, 5000, 10000] : [1, 5, 10, 20, 50, 100])).map((m) => {
+                    const c = m * 1_000_000;
+                    const on = coins === c && !custom;
+                    return (
+                      <button key={m} type="button" className="bs-opt" aria-checked={on} style={{ textAlign: 'center', padding: '10px 6px' }}
+                        onClick={() => { setCoins(c); setCustom(''); }}>
+                        <b style={{ justifyContent: 'center' }}>{m.toLocaleString()}M</b>
+                        {info?.rate ? <span className="s">≈ {fmtBaht((c / unit) * Number(info.rate))} บาท</span> : null}
+                      </button>);
+                  })}
+                </div>
+                <input className="bs-input" style={{ fontSize: 16 }} value={custom} placeholder={`จำนวนอื่น เช่น ${game === 'siam' ? '750M' : '7.5M'} (ขั้นต่ำ ${fmtM(info?.min_coins || unit)})`}
+                  onChange={(e) => { setCustom(e.target.value); setCoins(sellCoins(e.target.value)); }} />
+                {coins > 0 && !minOk && <small style={{ color: 'var(--bad)' }}>ขั้นต่ำ {fmtM(info?.min_coins || unit)}</small>}
+              </div>
+
+              {coins > 0 && minOk && (
+                <div style={{ ...box, textAlign: 'center', background: 'color-mix(in srgb,var(--gold) 14%,transparent)', border: '1.5px solid color-mix(in srgb,var(--gold) 50%,transparent)' }}>
+                  <div style={{ font: '800 20px/1.3 Prompt,sans-serif' }}>{est ? <>เงินทดรองที่จะได้รับประมาณ {fmtBaht(est)} บาท</> : <>ฝากขาย {fmtM(coins)} เหรียญ</>}</div>
+                  <small style={{ color: 'var(--muted)' }}>{coins.toLocaleString()} เหรียญ · หักค่าบริการแล้ว · ร้านโอนเข้าบัญชีที่ลงทะเบียนไว้ของคุณ</small>
+                </div>)}
+
+              {needKyc && (
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1.5px dashed var(--line)' }}>
+                  <div className="bs-label">📝 ลงทะเบียนผู้ฝากขาย (ครั้งแรกครั้งเดียว)</div>
+                  <div className="bs-alert bad"><b>⛔ ร้านรับฝากขายเฉพาะผู้ที่อายุ 18 ปีขึ้นไป</b><br />ชื่อบัญชีรับเงินต้องตรงกับบัตรประชาชน</div>
+                  <label style={field}><span className="bs-label">ชื่อ-นามสกุล (ตามบัตรประชาชน)</span>
+                    <input className="bs-input" style={{ fontSize: 16 }} value={kyc.name} onChange={(e) => setKyc({ ...kyc, name: e.target.value })} /></label>
+                  <label style={field}><span className="bs-label">เบอร์โทรศัพท์</span>
+                    <input className="bs-input" inputMode="tel" maxLength={12} value={kyc.phone} placeholder="0812345678" onChange={(e) => setKyc({ ...kyc, phone: e.target.value.replace(/[^\d-]/g, '') })} /></label>
+                  <label style={field}><span className="bs-label">เลขบัตรประชาชน 13 หลัก</span>
+                    <input className="bs-input" inputMode="numeric" maxLength={17} value={kyc.nid} onChange={(e) => setKyc({ ...kyc, nid: e.target.value.replace(/[^\d-]/g, '') })} />
+                    {kyc.nid.replace(/\D/g, '').length === 13 && !thaiIdOk(kyc.nid) && <small style={{ color: 'var(--bad)' }}>เลขบัตรไม่ถูกต้อง</small>}</label>
+                  <div style={field}><span className="bs-label">ธนาคารที่รับเงิน</span>
+                    <BankPicker value={kyc.bank} onPick={(b) => setKyc({ ...kyc, bank: b })} placeholder="เลือกธนาคาร" otherLabel="อื่นๆ" /></div>
+                  <label style={field}><span className="bs-label">เลขบัญชีรับเงิน</span>
+                    <input className="bs-input" inputMode="numeric" maxLength={18} value={kyc.account} onChange={(e) => setKyc({ ...kyc, account: e.target.value.replace(/[^\d-]/g, '') })} />
+                    <small style={{ color: 'var(--muted)' }}>🔒 เลขบัญชีถูกล็อกหลังยืนยัน แก้ไขเองไม่ได้ (ติดต่อแอดมิน)</small></label>
+                  <div style={field}><span className="bs-label">ไอดีเกมเพิ่มเติม (ถ้ามี · ได้อีก 3)</span>
+                    {kyc.extra.map((x, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 6 }}>
+                        <input className="bs-input" inputMode="numeric" maxLength={12} value={x}
+                          onChange={(e) => setKyc({ ...kyc, extra: kyc.extra.map((y, j) => (j === i ? e.target.value.replace(/\D/g, '') : y)) })} />
+                        <button type="button" className="bs-btn ghost" style={{ width: 52 }} aria-label="ลบไอดีนี้" onClick={() => setKyc({ ...kyc, extra: kyc.extra.filter((_, j) => j !== i) })}>×</button>
+                      </div>))}
+                    {kyc.extra.length < 3 && <button type="button" className="bs-btn ghost" onClick={() => setKyc({ ...kyc, extra: [...kyc.extra, ''] })}>+ เพิ่มไอดีเกม</button>}
+                  </div>
+
+                  <div style={field}><span className="bs-label">📷 รูปยืนยันตัวตน (รูปเดียว)</span>
+                    <button type="button" className="bs-btn" style={{ background: 'var(--warn-bg)', color: 'var(--warn)', border: '2px solid var(--warn)' }} onClick={() => setShowExample(true)}>
+                      📖 ดูตัวอย่างรูปที่ต้องส่ง</button>
+                    <div className="bs-alert info">ถ่ายรูปเดียวให้เห็น <b>บัตรประชาชนตัวจริง</b> + <b>กระดาษเขียนมือ</b> ว่า "{SELL_NOTE}" ลงชื่อจริง + วันที่ที่ถ่าย
+                      <br /><b style={{ color: 'var(--bad)' }}>ไม่เขียนด้วยลายมือตามตัวอย่าง = ไม่อนุมัติ</b></div>
+                    <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={pickImage} />
+                    <button type="button" className="bs-btn ghost" onClick={() => fileRef.current?.click()}>{kyc.image ? '✓ แนบรูปแล้ว (กดเพื่อเปลี่ยน)' : '🖼️ ถ่าย/แนบรูป'}</button>
+                    {kyc.image && <img src={kyc.image} alt="รูปที่แนบ" style={{ width: '100%', borderRadius: 12 }} />}
+                  </div>
+
+                  <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 14, fontSize: 14 }}>
+                    <input type="checkbox" checked={kyc.adult} onChange={(e) => setKyc({ ...kyc, adult: e.target.checked })} style={{ width: 20, height: 20, marginTop: 2, flex: 'none' }} />
+                    <span>ข้าพเจ้าอายุ 18 ปีขึ้นไป</span></label>
+                  <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 10, fontSize: 14 }}>
+                    <input type="checkbox" checked={kyc.consent} onChange={(e) => setKyc({ ...kyc, consent: e.target.checked })} style={{ width: 20, height: 20, marginTop: 2, flex: 'none' }} />
+                    <span>ข้าพเจ้ายินยอมให้ร้านเก็บสำเนาบัตรประชาชน ชื่อ เบอร์โทร และบัญชีรับเงิน เพื่อยืนยันตัวตน ป้องกันการทุจริต และเป็นหลักฐานทางบัญชี ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (รูปถูกเข้ารหัส เปิดดูได้เฉพาะแอดมิน และบันทึกทุกครั้ง)</span></label>
+                  <div className="bs-alert info" style={{ marginTop: 14, maxHeight: 200, overflowY: 'auto', whiteSpace: 'pre-wrap' }}><b>เงื่อนไขฝากขาย</b><br />{info.terms}</div>
+                  <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 10, fontSize: 14 }}>
+                    <input type="checkbox" checked={kyc.accept} onChange={(e) => setKyc({ ...kyc, accept: e.target.checked })} style={{ width: 20, height: 20, marginTop: 2, flex: 'none' }} />
+                    <span>ข้าพเจ้าอ่านและยอมรับเงื่อนไขฝากขายข้างต้น</span></label>
+                </div>
+              )}
+
+              {!needKyc && minOk && coins > 0 && info?.registered && shopIdBox}
+              {err && <div className="bs-alert bad" style={{ marginTop: 12 }}>{err}</div>}
+              {needKyc && kycErrors.length > 0 && coins > 0 && <small style={{ display: 'block', marginTop: 12, color: 'var(--muted)' }}>ยังขาด: {kycErrors.join(' · ')}</small>}
+              <button type="button" className="bs-btn primary" style={{ marginTop: 14 }} disabled={!ready}
+                onClick={() => (needKyc ? setReviewing(true) : submit())}>
+                {busy ? 'กำลังส่ง...' : checking ? 'กำลังตรวจไอดี...' : needKyc ? 'ถัดไป: ตรวจทานข้อมูล' : '📨 โอนเหรียญแล้ว · ส่งคำขอฝากขาย'}</button>
+              <p className="bs-sub" style={{ marginTop: 10, textAlign: 'center' }}>โอนเหรียญเข้าไอดีร้านก่อน แล้วกดส่งคำขอ · ร้านตรวจเหรียญแล้วโอนเงินทดรองเข้าบัญชีที่ลงทะเบียนไว้เท่านั้น</p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [recentIds, setRecentIds] = useState(loadRecent);
   // เปิดเว็บมา: ใส่ไอดีล่าสุดของเกมเริ่มต้น (Royal) ให้เลย
@@ -1545,6 +1968,7 @@ export default function App() {
   const [promo, setPromo] = useState(null);
   // ป้ายประกาศจากแผงควบคุม (24 พ.ย.) · ข้อความปิดปรับปรุงตามเวลาที่ตั้งไว้ใน api/_shop.js
   const [notice, setNotice] = useState('');
+  const [sellOpen, setSellOpen] = useState(false); // 28 พ.ย.: ปุ่มขายเหรียญ (ร้านเปิดที่คอมร้าน)
   const [maintenance, setMaintenance] = useState(null);
   // โหมดมืด/สว่าง (ร้านสั่ง 12 พ.ย.: เริ่มต้นโหมดมืด · จำค่าที่ลูกค้าเลือกไว้ในเครื่อง)
   const [theme, setTheme] = useState(() => {
@@ -1572,6 +1996,7 @@ export default function App() {
         setPromo(d.promo && (d.promo.royal || d.promo.siam) ? d.promo : null); // { royal, siam } เฉพาะเกมที่เปิดโปร
         setNotice(typeof d.notice === 'string' ? d.notice : '');
         setMaintenance(d.maintenance || null);
+        setSellOpen(d.sell === true);
       } catch {}
     };
     load();
@@ -1618,7 +2043,7 @@ export default function App() {
         .finally(() => clearTimeout(timer));
       lookups.current.set(key, p);
       // ผลไม่แน่นอน (ร้านไม่ว่าง/ถามไม่ได้) → ไม่จำ ให้ลองใหม่ได้
-      p.then((d) => { if (!['found', 'not_found'].includes(d.status)) lookups.current.delete(key); });
+      p.then((d) => { if (!['found', 'not_found', 'low_vip'].includes(d.status)) lookups.current.delete(key); });
     }
     return lookups.current.get(key);
   };
@@ -1632,11 +2057,13 @@ export default function App() {
     let alive = true;
     const t = setTimeout(() => {
       setIdCheck({ key, status: 'checking' });
-      lookupPlayer(game, gameId).then((d) => { if (alive) setIdCheck({ key, status: d.status }); });
+      lookupPlayer(game, gameId).then((d) => { if (alive) setIdCheck({ key, status: d.status, vip: d.vip, vipMin: d.vip_min }); });
     }, 1000);
     return () => { alive = false; clearTimeout(t); };
   }, [game, gameId]);
   const idState = idCheck.key === `${game}:${gameId}` ? idCheck.status : '';
+  // 28 พ.ย. ร้านสั่ง: Royal ปรับใหม่ VIP5 ขึ้นไปถึงซื้อขายเหรียญได้ → VIP ต่ำ บล็อก (อ่านเลขไม่ออก = ผ่าน)
+  const lowVipText = (vip, need) => `ไอดีนี้ VIP ${vip ?? '-'} · เกม Royal ต้อง VIP ${need || 5} ขึ้นไปจึงจะรับเหรียญได้`;
 
   // เปิดป๊อปอัปยืนยัน → ใช้ผลค้น (ที่ค้นล่วงหน้าไว้/กำลังค้นอยู่) ถามไม่ได้/ช้า → skip = ไปต่อได้เหมือนเดิม
   useEffect(() => {
@@ -1652,6 +2079,7 @@ export default function App() {
       if (!alive) return;
       if (d.status === 'found' && d.image) setPlayerCheck({ status: 'found', image: d.image });
       else if (d.status === 'not_found') setPlayerCheck({ status: 'not_found' });
+      else if (d.status === 'low_vip') setPlayerCheck({ status: 'low_vip', image: d.image, vip: d.vip, vipMin: d.vip_min });
       else if (left > 0 && ['busy', 'unknown'].includes(d.status)) timer = setTimeout(() => attempt(left - 1), 3000);
       else setPlayerCheck({ status: 'skip' });
     });
@@ -1797,6 +2225,17 @@ export default function App() {
                 </div>
               </div>
             )}
+            {playerCheck.status === 'low_vip' && (
+              <div className="bs-alert bad" style={{ marginTop: 10 }}>
+                <b>✗ {lowVipText(playerCheck.vip, playerCheck.vipMin)}</b>
+                {playerCheck.image && (
+                  <img src={playerCheck.image} alt={`ตัวละครในเกม ไอดี ${gameId}`} className="mx-auto w-full max-w-[300px] rounded-lg" style={{ marginTop: 8 }} />
+                )}
+                <div style={{ fontSize: 12.5, marginTop: 6 }}>
+                  เลข VIP อยู่บนดาวมุมรูปโปรไฟล์ อัป VIP ในเกมให้ถึง {playerCheck.vipMin || 5} แล้วกลับมาเติมใหม่ หรือกด "แก้ไขไอดี" เพื่อใช้ไอดีอื่น
+                </div>
+              </div>
+            )}
             {wrongGameHint && (
               <div className="bs-alert bad" style={{ marginTop: 10 }}>
                 <b>⚠️ เลือกเกม Siam แต่ไอดีมี {gameId.length} หลัก</b>
@@ -1927,7 +2366,7 @@ export default function App() {
             )}
 
             <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
-              {playerCheck.status === 'not_found' ? (
+              {['not_found', 'low_vip'].includes(playerCheck.status) ? (
                 <button type="button" onClick={() => setConfirming(false)} autoFocus className="bs-btn primary">{t('edit')}</button>
               ) : (
                 <>
@@ -1977,6 +2416,14 @@ export default function App() {
           })}
         </div>
 
+        {/* 28 พ.ย.: ขายเหรียญให้ร้าน (ฝากขาย) — ขึ้นเฉพาะเมื่อร้านเปิด web_sell */}
+        {sellOpen && !offline && (
+          <a href="/?sell" className="bs-promo" style={{ textDecoration: 'none' }}>
+            <span className="ic" aria-hidden="true">💰</span>
+            <div><b>มีเหรียญเหลือ? ฝากขายกับร้านได้</b><span>ฝากขายเหรียญ Royal / Siam รับเงินทดรองโอนเข้าบัญชีทันที</span></div>
+          </a>
+        )}
+
         {/* ป้ายประกาศ (เปิดจากแผงควบคุม) / ข้อความปิดปรับปรุง */}
         {(maintenance || (notice && !offline)) && (
           <div className="bs-promo" role="note">
@@ -2015,6 +2462,7 @@ export default function App() {
             {idState === 'checking' && <span className="bs-check bs-muted">กำลังตรวจ…</span>}
             {idState === 'found' && <span className="bs-check" style={{ color: 'var(--good)' }}>✓ ตรวจแล้ว</span>}
             {idState === 'not_found' && <span className="bs-check" style={{ color: 'var(--bad)' }}>✗ ไม่พบในเกม</span>}
+            {idState === 'low_vip' && <span className="bs-check" style={{ color: 'var(--bad)' }}>✗ VIP {idCheck.vip ?? '-'}</span>}
           </div>
           {(recentIds[game] || []).length > 0 && (
             <div className="bs-recent">
@@ -2029,6 +2477,9 @@ export default function App() {
           )}
           {idState === 'not_found' && (
             <p style={{ marginTop: 6, fontSize: 12.5, color: 'var(--bad)' }}>ไม่พบไอดีนี้ในเกม {gameInfo.short} ตรวจตัวเลขอีกครั้ง</p>
+          )}
+          {idState === 'low_vip' && (
+            <p style={{ marginTop: 6, fontSize: 12.5, color: 'var(--bad)', fontWeight: 700 }}>{lowVipText(idCheck.vip, idCheck.vipMin)}</p>
           )}
           {wrongGameHint && (
             <p style={{ marginTop: 6, fontSize: 12.5, color: 'var(--warn)' }}>
