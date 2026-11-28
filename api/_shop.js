@@ -62,7 +62,7 @@ export async function shopStatus() {
       const royal = pick(d?.promo), siam = pick(d?.promo_siam);
       promo = royal || siam ? { royal, siam } : null;
       const notice = typeof d?.notice === 'string' ? d.notice.slice(0, 200) : ''; // ป้ายประกาศ (แผงควบคุม)
-      return { games, methods, promo, notice, known: true, offline: false };
+      return { games, methods, promo, notice, known: true, offline: false, sell: d?.sell === true }; // 28 พ.ย. ปุ่มขายเหรียญ
     } catch {}
   }
   // ร้านติดต่อไม่ได้ → ปิดทุกอย่าง
@@ -90,13 +90,19 @@ export async function idStatus(game, gameId) {
       signal: AbortSignal.timeout(4000),
     });
     const d = await r.json();
-    return { verified: !!d.verified, blocked: !!d.blocked };
+    return {
+      verified: !!d.verified, blocked: !!d.blocked,
+      lowVip: !!d.low_vip, vip: Number.isInteger(d.vip) ? d.vip : null, vipMin: Number.isInteger(d.vip_min) ? d.vip_min : 5,
+    };
   } catch {
     return { verified: false, blocked: false };
   }
 }
 
 export const BLOCKED_MESSAGE = 'ไอดีนี้ถูกระงับการเติม กรุณาติดต่อแอดมินเพจ BOSS STORE';
+// 28 พ.ย. ร้านสั่ง: Royal ปรับใหม่ VIP5 ขึ้นไปถึงซื้อขายเหรียญได้
+export const lowVipMessage = (info) =>
+  `ไอดีนี้ VIP ${info.vip ?? '-'} · เกม Royal ต้อง VIP ${info.vipMin || 5} ขึ้นไปจึงจะรับเหรียญได้`;
 
 // ตรวจก่อนสร้างรายการจ่ายเงิน คืน null ถ้าผ่าน หรือ { status, body } ถ้าปิดอยู่
 export async function checkOpen(game, gameName, method) {

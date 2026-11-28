@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { GAMES, MAX_BAHT, chipsFor, minBaht } from './_rates.js';
-import { checkOpen, idStatus, BLOCKED_MESSAGE } from './_shop.js';
+import { checkOpen, idStatus, BLOCKED_MESSAGE, lowVipMessage } from './_shop.js';
 
 // พร้อมเพย์ธนาคารของร้าน (ไม่ผ่าน Stripe แล้ว) → ลูกค้าสแกนจ่าย แล้วอัปโหลดสลิป
 // บอทที่คอมร้านตรวจสลิปกับ Slip2Go (api/promptpay-slip.js) แล้วส่งเหรียญ
@@ -77,6 +77,7 @@ export default async function handler(req, res) {
   if (closed) return res.status(closed.status).json(closed.body);
   const idInfo = await idStatus(game, gameId);
   if (idInfo.blocked) return res.status(403).json({ error: BLOCKED_MESSAGE });
+  if (idInfo.lowVip) return res.status(403).json({ error: lowVipMessage(idInfo) });
 
   const chips = chipsFor(amount, game);
   const code = newCode();

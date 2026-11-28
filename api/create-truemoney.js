@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { GAMES, MAX_BAHT, chipsFor, minBaht } from './_rates.js';
-import { checkOpen, idStatus, BLOCKED_MESSAGE } from './_shop.js';
+import { checkOpen, idStatus, BLOCKED_MESSAGE, lowVipMessage } from './_shop.js';
 
 // สร้างลิงก์รับเงินทรูมันนี่ (TrueMoney > บริการร้านค้า > สร้างลิงก์รับเงิน)
 // ตั้งค่าใน Vercel > Settings > Environment Variables:
@@ -46,6 +46,7 @@ export default async function handler(req, res) {
   if (closed) return res.status(closed.status).json(closed.body);
   const idInfo = await idStatus(game, gameId);
   if (idInfo.blocked) return res.status(403).json({ error: BLOCKED_MESSAGE });
+  if (idInfo.lowVip) return res.status(403).json({ error: lowVipMessage(idInfo) });
 
   const chips = chipsFor(amount, game);
   const code = newCode();

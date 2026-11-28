@@ -17,10 +17,13 @@ export default async function handler(req, res) {
       { headers: { 'ngrok-skip-browser-warning': '1' }, signal: AbortSignal.timeout(40000) },
     );
     const d = await r.json();
-    const status = ['found', 'not_found', 'busy', 'unknown', 'unsupported', 'limited'].includes(d.status) ? d.status : 'unknown';
-    const image = status === 'found' && /^data:image\/png;base64,/.test(d.image || '') ? d.image : undefined;
+    // 28 พ.ย.: low_vip = Royal VIP ต่ำกว่าขั้นต่ำ (ร้านสั่ง VIP5 ขึ้นไป) → หน้าเว็บบล็อก
+    const status = ['found', 'low_vip', 'not_found', 'busy', 'unknown', 'unsupported', 'limited'].includes(d.status) ? d.status : 'unknown';
+    const image = ['found', 'low_vip'].includes(status) && /^data:image\/png;base64,/.test(d.image || '') ? d.image : undefined;
+    const vip = Number.isInteger(d.vip) ? d.vip : undefined;
+    const vip_min = Number.isInteger(d.vip_min) ? d.vip_min : undefined;
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json({ status, image });
+    return res.status(200).json({ status, image, vip, vip_min });
   } catch {
     return res.status(200).json({ status: 'unknown' });
   }
