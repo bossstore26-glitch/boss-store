@@ -1198,7 +1198,9 @@ function BankPromptPayCard({ pending, onDone, onCancel }) {
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <a className="bs-btn" style={{ flex: 1, background: '#06C755', color: '#fff' }} href={LINE_OA_URL} target="_blank" rel="noopener noreferrer">LINE</a>
-              <a className="bs-btn" style={{ flex: 1, background: '#0084FF', color: '#fff' }} href={MESSENGER_URL} target="_blank" rel="noopener noreferrer">Messenger</a>
+              <a className="bs-btn" style={{ flex: 1, background: '#0084FF', color: '#fff' }} href={MESSENGER_URL} target="_blank" rel="noopener noreferrer">
+                Messenger<span className="bs-badge" style={{ marginLeft: 6, background: '#fff', whiteSpace: 'nowrap', flex: 'none', padding: '4px 7px' }}>เร็วสุด</span>
+              </a>
             </div>
             <div className="bs-cap" style={{ marginTop: 8 }}>{t('noReupload')}</div>
             {verify && <VerifyBox pending={pending} verify={verify} onState={setVerify} />}
